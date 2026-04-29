@@ -1,0 +1,26 @@
+name: campus_connect
+description: Campus Connect - smart ERP extension for students and teachers
+publish_to: 'none'
+version: 0.1.0
+environment:
+  sdk: '>=2.17.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  provider: ^6.0.5
+  supabase_flutter: ^2.6.0
+  uuid: ^4.4.0
+  intl: ^0.18.0
+  url_launcher: ^6.1.10
+  file_picker: ^8.0.7
+  excel: ^4.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
