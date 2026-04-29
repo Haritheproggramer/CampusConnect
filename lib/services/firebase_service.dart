@@ -58,41 +58,64 @@ class FirebaseService {
     required String role,
     Map<String, dynamic>? extra,
   }) async {
-    final resp = await db.auth.signUp(
-      email: email,
-      password: password,
-      data: {'name': name, 'role': role},
-    );
-    final uid = resp.user?.id;
-    if (uid == null) {
-      throw Exception('Signup completed but user id is missing.');
-    }
+    try {
+      final resp = await db.auth.signUp(
+        email: email,
+        password: password,
+        data: {'name': name, 'role': role},
+      );
+      final uid = resp.user?.id;
+      if (uid == null) {
+        throw Exception('Signup completed but user id is missing.');
+      }
 
-    final user = AppUser(
-      id: uid,
-      name: name,
-      role: role,
-      email: email,
-      department: extra?['department'] ?? '',
-      className: extra?['className'] ?? '',
-      rollNo: extra?['rollNo'] ?? '',
-      section: extra?['section'] ?? '',
-      subject: extra?['subject'] ?? '',
-    );
+      final user = AppUser(
+        id: uid,
+        name: name,
+        role: role,
+        email: email,
+        department: extra?['department'] ?? '',
+        className: extra?['className'] ?? '',
+        rollNo: extra?['rollNo'] ?? '',
+        section: extra?['section'] ?? '',
+        subject: extra?['subject'] ?? '',
+      );
 
-    await db.from('users').upsert(user.toMap());
-    if (role == 'student') {
-      await db.from('students').upsert({
-        'id': uid,
-        'name': name,
-        'class_name': user.className,
-        'roll_no': user.rollNo,
-        'section': user.section,
-        'department': user.department,
-        'email': email,
-      });
+      await db.from('users').upsert(user.toMap());
+      if (role == 'student') {
+        await db.from('students').upsert({
+          'id': uid,
+          'name': name,
+          'class_name': user.className,
+          'roll_no': user.rollNo,
+          'section': user.section,
+          'department': user.department,
+          'email': email,
+        });
+      }
+      return user;
+    } on AuthApiException catch (e) {
+      final code = e.code ?? '';
+      final isRateLimit = code == 'over_email_send_rate_limit' || e.statusCode == '429';
+      final isAlreadyExists = code == 'user_already_exists' || code == 'email_exists';
+
+      if (isRateLimit || isAlreadyExists) {
+        try {
+          await db.auth.signInWithPassword(email: email, password: password);
+          final existingUser = await getCurrentUserProfile();
+          if (existingUser != null) return existingUser;
+        } catch (_) {
+          // If fallback sign-in fails, show actionable guidance below.
+        }
+      }
+
+      if (isRateLimit) {
+        throw Exception(
+          'Signup blocked by Supabase email rate limit. Try Sign in with an existing account, or disable Email confirmation in Supabase Auth (for dev) and retry after a few minutes.',
+        );
+      }
+      rethrow;
     }
-    return user;
   }
 
   Future<AppUser?> signInWithEmail({required String email, required String password}) async {
