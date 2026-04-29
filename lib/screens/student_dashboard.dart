@@ -12,7 +12,6 @@ import 'tasks_screen.dart';
 import 'announcements_screen.dart';
 import 'profile_screen.dart';
 import 'timetable_screen.dart';
-import 'db_setup_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -145,13 +144,6 @@ class _HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AnnouncementProvider>(
       builder: (context, provider, _) {
-        // If there's a DB error, show the setup screen
-        if (provider.error != null &&
-            (provider.error!.contains('PGRST205') ||
-             provider.error!.contains('schema cache') ||
-             provider.error!.contains('not find'))) {
-          return const DbSetupScreen();
-        }
 
         return ListView(
           padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),

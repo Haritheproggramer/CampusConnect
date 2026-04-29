@@ -72,13 +72,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen>
               if (provider.isLoading) {
                 return const ShimmerList(count: 6, cardHeight: 100);
               }
-              if (provider.error != null) {
-                return EmptyState(
-                  icon: Icons.wifi_off_rounded,
-                  title: 'Could not load announcements',
-                  subtitle: provider.error,
-                );
-              }
               return TabBarView(
                 controller: _tabCtrl,
                 children: _tabs.map((cat) {

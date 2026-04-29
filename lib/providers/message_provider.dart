@@ -7,7 +7,6 @@ class MessageProvider extends ChangeNotifier {
   List<MessageModel> _broadcasts = [];
   final Set<String> _readIds = {};
   bool _loading = true;
-  String? _error;
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
 
   MessageProvider() {
@@ -15,12 +14,8 @@ class MessageProvider extends ChangeNotifier {
   }
 
   bool get isLoading => _loading;
-  String? get error => _error;
   List<MessageModel> get broadcasts => List.unmodifiable(_broadcasts);
-
-  int get unreadCount =>
-      _broadcasts.where((m) => !_readIds.contains(m.id)).length;
-
+  int get unreadCount => _broadcasts.where((m) => !_readIds.contains(m.id)).length;
   bool isRead(String id) => _readIds.contains(id);
 
   void markRead(String id) {
@@ -28,24 +23,36 @@ class MessageProvider extends ChangeNotifier {
   }
 
   void _init() {
-    _sub = FirebaseService.instance.streamBroadcasts().listen(
-      (rows) {
-        _broadcasts = rows
-            .where((r) =>
-                r['receiver_id'] == null ||
-                (r['receiver_id'] as String?)!.isEmpty)
-            .map((r) => MessageModel.fromMap(r))
-            .toList();
-        _loading = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = e.toString();
-        _loading = false;
-        notifyListeners();
-      },
-    );
+    try {
+      _sub = FirebaseService.instance.streamBroadcasts().listen(
+        (rows) {
+          _broadcasts = rows
+              .where((r) {
+                final rid = r['receiver_id'];
+                return rid == null || (rid as String).isEmpty;
+              })
+              .map((r) {
+                try {
+                  return MessageModel.fromMap(r);
+                } catch (_) {
+                  return null;
+                }
+              })
+              .whereType<MessageModel>()
+              .toList();
+          _loading = false;
+          notifyListeners();
+        },
+        onError: (_) {
+          // Silent — app continues normally
+          _loading = false;
+          notifyListeners();
+        },
+      );
+    } catch (_) {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   @override

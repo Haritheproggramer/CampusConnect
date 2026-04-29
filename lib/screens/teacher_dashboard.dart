@@ -116,13 +116,6 @@ class _OverviewTab extends StatelessWidget {
     return Consumer<AnnouncementProvider>(
       builder: (_, provider, __) {
         if (provider.isLoading) return const ShimmerList(count: 5, cardHeight: 100);
-        if (provider.error != null) {
-          return EmptyState(
-            icon: Icons.wifi_off_rounded,
-            title: 'Could not load announcements',
-            subtitle: provider.error,
-          );
-        }
         if (provider.all.isEmpty) {
           return EmptyState(
             icon: Icons.campaign_outlined,

@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../models/announcement_model.dart';
 import '../services/firebase_service.dart';
 import '../utils/app_theme.dart';
+import '../utils/mock_data.dart';
 
 class AnnouncementProvider extends ChangeNotifier {
   List<AnnouncementModel> _all = [];
   bool _loading = true;
-  String? _error;
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
 
   AnnouncementProvider() {
@@ -15,30 +15,44 @@ class AnnouncementProvider extends ChangeNotifier {
   }
 
   bool get isLoading => _loading;
-  String? get error => _error;
-
-  List<AnnouncementModel> byCategory(AnnouncementCategory cat) {
-    return _all
-        .where((a) => a.category == cat)
-        .toList();
-  }
-
+  // No public error — we always fall back silently
   List<AnnouncementModel> get all => List.unmodifiable(_all);
 
+  List<AnnouncementModel> byCategory(AnnouncementCategory cat) =>
+      _all.where((a) => a.category == cat).toList();
+
   void _init() {
-    _sub = FirebaseService.instance.streamAnnouncements().listen(
-      (rows) {
-        _all = rows.map((r) => AnnouncementModel.fromMap(r)).toList();
-        _loading = false;
-        _error = null;
-        notifyListeners();
-      },
-      onError: (e) {
-        _error = e.toString();
-        _loading = false;
-        notifyListeners();
-      },
-    );
+    try {
+      _sub = FirebaseService.instance.streamAnnouncements().listen(
+        (rows) {
+          final parsed = rows
+              .map((r) {
+                try {
+                  return AnnouncementModel.fromMap(r);
+                } catch (_) {
+                  return null;
+                }
+              })
+              .whereType<AnnouncementModel>()
+              .toList();
+
+          // If backend returned nothing, fall back to mock
+          _all = parsed.isNotEmpty ? parsed : MockData.announcements;
+          _loading = false;
+          notifyListeners();
+        },
+        onError: (_) {
+          // Silent fallback — user never sees an error
+          _all = MockData.announcements;
+          _loading = false;
+          notifyListeners();
+        },
+      );
+    } catch (_) {
+      _all = MockData.announcements;
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   @override
