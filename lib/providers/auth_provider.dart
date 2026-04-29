@@ -26,10 +26,11 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      // Uses in-memory cache — no network call if session already cached
       _user = await FirebaseService.instance.getCurrentUserProfile();
     } catch (e) {
       _user = null;
-      _error = 'Backend not ready. Please run Supabase schema.sql and retry.';
+      _error = 'Backend not ready. Please check Supabase configuration.';
     } finally {
       _loading = false;
       notifyListeners();
@@ -41,7 +42,8 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      _user = await FirebaseService.instance.signInWithEmail(email: email, password: password);
+      _user = await FirebaseService.instance
+          .signInWithEmail(email: email, password: password);
     } catch (e) {
       _user = null;
       _error = e.toString();
@@ -52,12 +54,24 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signUp(String email, String password, String name, String role, {Map<String, dynamic>? extra}) async {
+  Future<void> signUp(
+    String email,
+    String password,
+    String name,
+    String role, {
+    Map<String, dynamic>? extra,
+  }) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      _user = await FirebaseService.instance.signUpWithEmail(email: email, password: password, name: name, role: role, extra: extra);
+      _user = await FirebaseService.instance.signUpWithEmail(
+        email: email,
+        password: password,
+        name: name,
+        role: role,
+        extra: extra,
+      );
     } catch (e) {
       _user = null;
       _error = e.toString();

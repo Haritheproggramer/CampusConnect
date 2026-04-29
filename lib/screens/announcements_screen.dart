@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/firebase_service.dart';
-import '../models/announcement_model.dart';
+import 'package:provider/provider.dart';
+import '../providers/announcement_provider.dart';
+import '../utils/app_theme.dart';
+import '../widgets/broadcast_card.dart';
+import '../widgets/shimmer_loader.dart';
+import '../widgets/empty_state.dart';
 
 class AnnouncementsScreen extends StatefulWidget {
   const AnnouncementsScreen({super.key});
@@ -9,76 +13,95 @@ class AnnouncementsScreen extends StatefulWidget {
   State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
 }
 
-class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
-  String _classFilter = 'all';
-  String _deptFilter = 'all';
+class _AnnouncementsScreenState extends State<AnnouncementsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
+
+  static const _tabs = [
+    AnnouncementCategory.all,
+    AnnouncementCategory.department,
+    AnnouncementCategory.class_,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: _tabs.length, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _classFilter,
-                  decoration: const InputDecoration(labelText: 'Class'),
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Classes')),
-                    DropdownMenuItem(value: 'CSE CORE 4C', child: Text('CSE CORE 4C')),
+        // Tab bar
+        Container(
+          color: AppTheme.surfaceCard,
+          child: TabBar(
+            controller: _tabCtrl,
+            tabs: _tabs.map((cat) {
+              return Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: cat.color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(cat.label),
                   ],
-                  onChanged: (v) => setState(() => _classFilter = v ?? 'all'),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _deptFilter,
-                  decoration: const InputDecoration(labelText: 'Department'),
-                  items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Departments')),
-                    DropdownMenuItem(value: 'Computer Science', child: Text('Computer Science')),
-                  ],
-                  onChanged: (v) => setState(() => _deptFilter = v ?? 'all'),
-                ),
-              ),
-            ],
+              );
+            }).toList(),
           ),
         ),
+        // Tab views
         Expanded(
-          child: StreamBuilder<List<Map<String, dynamic>>>(
-            stream: FirebaseService.instance.streamAnnouncements(),
-      builder: (context, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-              final rows = snap.data!;
-              final filtered = rows.where((r) {
-                final tc = r['target_class'] ?? 'all';
-                final td = r['target_department'] ?? 'all';
-                final classOk = _classFilter == 'all' || tc == 'all' || tc == _classFilter;
-                final deptOk = _deptFilter == 'all' || td == 'all' || td == _deptFilter;
-                return classOk && deptOk;
-              }).toList();
-
-              if (filtered.isEmpty) return const Center(child: Text('No announcements'));
-        return ListView.builder(
-                itemCount: filtered.length,
-          itemBuilder: (context, i) {
-                  final a = AnnouncementModel.fromMap(filtered[i]);
-            return Card(
-              margin: const EdgeInsets.all(8),
-              child: ListTile(
-                title: Text(a.title),
-                subtitle: Text('${a.description}\nBy ${a.senderName} • ${a.priority}'),
-                isThreeLine: true,
-              ),
-            );
-          },
-        );
-      },
+          child: Consumer<AnnouncementProvider>(
+            builder: (context, provider, _) {
+              if (provider.isLoading) {
+                return const ShimmerList(count: 6, cardHeight: 100);
+              }
+              if (provider.error != null) {
+                return EmptyState(
+                  icon: Icons.wifi_off_rounded,
+                  title: 'Could not load announcements',
+                  subtitle: provider.error,
+                );
+              }
+              return TabBarView(
+                controller: _tabCtrl,
+                children: _tabs.map((cat) {
+                  final items = provider.byCategory(cat);
+                  if (items.isEmpty) {
+                    return EmptyState(
+                      icon: Icons.campaign_outlined,
+                      title: 'No messages yet',
+                      subtitle:
+                          'No ${cat.label.toLowerCase()} announcements posted.',
+                    );
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 24),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) =>
+                        BroadcastCard(model: items[i]),
+                  );
+                }).toList(),
+              );
+            },
           ),
-        )
+        ),
       ],
     );
   }

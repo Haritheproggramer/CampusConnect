@@ -8,6 +8,7 @@ class AppUser {
   final String rollNo;
   final String section;
   final String subject;
+  final bool isCR; // Class Representative flag
 
   AppUser({
     required this.id,
@@ -19,7 +20,11 @@ class AppUser {
     this.rollNo = '',
     this.section = '',
     this.subject = '',
+    this.isCR = false,
   });
+
+  bool get isTeacher => role == 'teacher' || role == 'admin';
+  bool get canSendBroadcast => isTeacher || isCR;
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -27,10 +32,11 @@ class AppUser {
         'role': role,
         'email': email,
         'department': department,
-      'class_name': className,
-      'roll_no': rollNo,
-      'section': section,
-      'subject': subject,
+        'class_name': className,
+        'roll_no': rollNo,
+        'section': section,
+        'subject': subject,
+        'is_cr': isCR,
       };
 
   factory AppUser.fromMap(Map<String, dynamic> m) => AppUser(
@@ -39,9 +45,10 @@ class AppUser {
         role: m['role'] ?? 'student',
         email: m['email'] ?? '',
         department: m['department'] ?? '',
-      className: m['class_name'] ?? m['className'] ?? '',
-      rollNo: m['roll_no'] ?? m['rollNo'] ?? '',
-      section: m['section'] ?? '',
-      subject: m['subject'] ?? '',
+        className: m['class_name'] ?? m['className'] ?? '',
+        rollNo: m['roll_no'] ?? m['rollNo'] ?? '',
+        section: m['section'] ?? '',
+        subject: m['subject'] ?? '',
+        isCR: m['is_cr'] == true || m['isCR'] == true,
       );
 }
