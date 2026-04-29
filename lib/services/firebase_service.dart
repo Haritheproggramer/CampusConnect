@@ -29,8 +29,19 @@ class FirebaseService {
     final u = currentAuthUser;
     if (u == null) return null;
 
-    final row = await db.from('users').select().eq('id', u.id).maybeSingle();
-    if (row == null) {
+    try {
+      final row = await db.from('users').select().eq('id', u.id).maybeSingle();
+      if (row == null) {
+        return AppUser(
+          id: u.id,
+          name: (u.userMetadata?['name'] ?? '') as String,
+          role: (u.userMetadata?['role'] ?? 'student') as String,
+          email: u.email ?? '',
+        );
+      }
+      return AppUser.fromMap(Map<String, dynamic>.from(row));
+    } catch (_) {
+      // Fallback avoids app-lock if schema/policies are not yet applied.
       return AppUser(
         id: u.id,
         name: (u.userMetadata?['name'] ?? '') as String,
@@ -38,7 +49,6 @@ class FirebaseService {
         email: u.email ?? '',
       );
     }
-    return AppUser.fromMap(Map<String, dynamic>.from(row));
   }
 
   Future<AppUser> signUpWithEmail({

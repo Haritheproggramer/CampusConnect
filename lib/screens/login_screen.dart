@@ -36,6 +36,21 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (auth.error != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        auth.error!,
+                        style: TextStyle(color: Colors.red.shade800),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   if (_isSignUp)
                     TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name')),
                   if (_isSignUp)
@@ -81,12 +96,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           await auth.signIn(_email.text.trim(), _password.text.trim());
                         }
                       } catch (e) {
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
                       }
                     },
                     child: Text(_isSignUp ? 'Sign up' : 'Sign in'),
                   ),
-                  TextButton(onPressed: () => setState(() => _isSignUp = !_isSignUp), child: Text(_isSignUp ? 'Have an account? Sign in' : 'No account? Sign up'))
+                  TextButton(
+                    onPressed: () {
+                      auth.clearError();
+                      setState(() => _isSignUp = !_isSignUp);
+                    },
+                    child: Text(_isSignUp ? 'Have an account? Sign in' : 'No account? Sign up'),
+                  )
                 ],
               ),
             ),
