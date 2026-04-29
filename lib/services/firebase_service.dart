@@ -308,74 +308,197 @@ class FirebaseService {
   // ── Seed ──────────────────────────────────────────────────────────────────
 
   Future<void> seedDemoData() async {
+    // ── 20+ Realistic CSE 4C Students ────────────────────────────────────────
     final students = [
-      {
-        'id': const Uuid().v4(),
-        'name': 'Alice Johnson',
-        'class_name': 'CSE 2nd Year',
-        'roll_no': 'CS101',
-        'section': 'A',
-        'department': 'Computer Science',
-        'email': 'alice@example.com',
-      },
-      {
-        'id': const Uuid().v4(),
-        'name': 'Bob Kumar',
-        'class_name': 'CSE 2nd Year',
-        'roll_no': 'CS102',
-        'section': 'A',
-        'department': 'Computer Science',
-        'email': 'bob@example.com',
-      },
-      {
-        'id': const Uuid().v4(),
-        'name': 'Harayam Jha',
-        'class_name': 'CSE 2nd Year',
-        'roll_no': '45',
-        'section': 'A',
-        'department': 'Computer Science',
-        'email': 'harayam@example.com',
-      },
+      {'id': const Uuid().v4(), 'name': 'Aarav Sharma',      'class_name': 'CSE 4C', 'roll_no': 'CS4C01', 'section': 'C', 'department': 'Computer Science', 'email': 'aarav.sharma@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Aanya Singh',       'class_name': 'CSE 4C', 'roll_no': 'CS4C02', 'section': 'C', 'department': 'Computer Science', 'email': 'aanya.singh@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Arjun Mehta',       'class_name': 'CSE 4C', 'roll_no': 'CS4C03', 'section': 'C', 'department': 'Computer Science', 'email': 'arjun.mehta@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Priya Verma',       'class_name': 'CSE 4C', 'roll_no': 'CS4C04', 'section': 'C', 'department': 'Computer Science', 'email': 'priya.verma@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Rohit Gupta',       'class_name': 'CSE 4C', 'roll_no': 'CS4C05', 'section': 'C', 'department': 'Computer Science', 'email': 'rohit.gupta@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Sneha Patel',       'class_name': 'CSE 4C', 'roll_no': 'CS4C06', 'section': 'C', 'department': 'Computer Science', 'email': 'sneha.patel@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Vikram Joshi',      'class_name': 'CSE 4C', 'roll_no': 'CS4C07', 'section': 'C', 'department': 'Computer Science', 'email': 'vikram.joshi@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Divya Nair',        'class_name': 'CSE 4C', 'roll_no': 'CS4C08', 'section': 'C', 'department': 'Computer Science', 'email': 'divya.nair@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Karan Malhotra',    'class_name': 'CSE 4C', 'roll_no': 'CS4C09', 'section': 'C', 'department': 'Computer Science', 'email': 'karan.malhotra@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Meera Iyer',        'class_name': 'CSE 4C', 'roll_no': 'CS4C10', 'section': 'C', 'department': 'Computer Science', 'email': 'meera.iyer@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Nikhil Reddy',      'class_name': 'CSE 4C', 'roll_no': 'CS4C11', 'section': 'C', 'department': 'Computer Science', 'email': 'nikhil.reddy@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Pooja Mishra',      'class_name': 'CSE 4C', 'roll_no': 'CS4C12', 'section': 'C', 'department': 'Computer Science', 'email': 'pooja.mishra@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Rahul Pandey',      'class_name': 'CSE 4C', 'roll_no': 'CS4C13', 'section': 'C', 'department': 'Computer Science', 'email': 'rahul.pandey@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Sanya Kapoor',      'class_name': 'CSE 4C', 'roll_no': 'CS4C14', 'section': 'C', 'department': 'Computer Science', 'email': 'sanya.kapoor@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Tanmay Bhatt',      'class_name': 'CSE 4C', 'roll_no': 'CS4C15', 'section': 'C', 'department': 'Computer Science', 'email': 'tanmay.bhatt@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Urvashi Chandra',   'class_name': 'CSE 4C', 'roll_no': 'CS4C16', 'section': 'C', 'department': 'Computer Science', 'email': 'urvashi.c@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Varun Saxena',      'class_name': 'CSE 4C', 'roll_no': 'CS4C17', 'section': 'C', 'department': 'Computer Science', 'email': 'varun.saxena@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Deepika Rao',       'class_name': 'CSE 4C', 'roll_no': 'CS4C18', 'section': 'C', 'department': 'Computer Science', 'email': 'deepika.rao@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Harayam Jha',       'class_name': 'CSE 4C', 'roll_no': 'CS4C19', 'section': 'C', 'department': 'Computer Science', 'email': 'harayam@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Ishaan Trivedi',    'class_name': 'CSE 4C', 'roll_no': 'CS4C20', 'section': 'C', 'department': 'Computer Science', 'email': 'ishaan.t@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Jyoti Bansal',      'class_name': 'CSE 4C', 'roll_no': 'CS4C21', 'section': 'C', 'department': 'Computer Science', 'email': 'jyoti.b@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Kartik Choudhary',  'class_name': 'CSE 4C', 'roll_no': 'CS4C22', 'section': 'C', 'department': 'Computer Science', 'email': 'kartik.c@college.edu'},
+      // ECE students for variety
+      {'id': const Uuid().v4(), 'name': 'Lavanya Menon',     'class_name': 'ECE 4A', 'roll_no': 'EC4A01', 'section': 'A', 'department': 'Electronics', 'email': 'lavanya.m@college.edu'},
+      {'id': const Uuid().v4(), 'name': 'Manish Tripathi',   'class_name': 'ECE 4A', 'roll_no': 'EC4A02', 'section': 'A', 'department': 'Electronics', 'email': 'manish.t@college.edu'},
     ];
     await db.from('students').upsert(students);
 
-    await db.from('announcements').insert({
-      'id': const Uuid().v4(),
-      'title': 'Welcome to Campus Connect',
-      'description': 'Your smart college communication platform is ready.',
-      'sender_id': 'system',
-      'sender_name': 'Admin',
-      'priority': 'Normal',
-      'category': 'all',
-      'date': DateTime.now().toIso8601String(),
-      'target_class': 'all',
-      'target_department': 'all',
-    });
+    // ── Announcements: ALL category ───────────────────────────────────────────
+    await db.from('announcements').upsert([
+      {
+        'id': const Uuid().v4(),
+        'title': '🏆 Hackathon Registration Open — Smart India Hackathon 2024',
+        'description': 'SIH registrations are now open! Form teams of 6 and register before the deadline. Problem statements will be released on the portal. This is a great opportunity for all CSE students.',
+        'sender_id': 'system', 'sender_name': 'Prof. Kumar (Faculty Coordinator)',
+        'priority': 'Important', 'category': 'all',
+        'date': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        'target_class': 'all', 'target_department': 'all',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': '📅 Mentor Meeting — Industry Interaction Session',
+        'description': 'Industry mentors from TCS, Infosys, and Wipro will visit campus on Friday. All 4th year students MUST attend. Venue: Seminar Hall, 2 PM sharp.',
+        'sender_id': 'system', 'sender_name': 'Placement Cell',
+        'priority': 'Urgent', 'category': 'all',
+        'date': DateTime.now().subtract(const Duration(hours: 5)).toIso8601String(),
+        'target_class': 'all', 'target_department': 'all',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': '📝 Mid-Semester Examination Schedule Released',
+        'description': 'Mid-semester exam timetable has been published on the academic portal. Exams start from next week. Check your individual schedule and download admit card.',
+        'sender_id': 'system', 'sender_name': 'Exam Controller',
+        'priority': 'Important', 'category': 'all',
+        'date': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+        'target_class': 'all', 'target_department': 'all',
+      },
+    ]);
 
-    await db.from('announcements').insert({
-      'id': const Uuid().v4(),
-      'title': 'Data Science Seminar — Register Now',
-      'description': 'Open to all CSE students. Venue: LT-3, Friday 3PM.',
-      'sender_id': 'system',
-      'sender_name': 'HOD CSE',
-      'priority': 'Important',
-      'category': 'department',
-      'date': DateTime.now().toIso8601String(),
-      'target_class': 'all',
-      'target_department': 'Computer Science',
-    });
+    // ── Announcements: DEPARTMENT category ────────────────────────────────────
+    await db.from('announcements').upsert([
+      {
+        'id': const Uuid().v4(),
+        'title': '🤖 Workshop: Advanced ML with PyTorch — CSE Dept',
+        'description': 'Two-day hands-on workshop on deep learning with PyTorch. Open to all CSE students. Register by tomorrow 5 PM. Limited seats — 30 only. Lab-2 will be used.',
+        'sender_id': 'system', 'sender_name': 'Dr. Priya R. (ML Faculty)',
+        'priority': 'Important', 'category': 'department',
+        'date': DateTime.now().subtract(const Duration(hours: 8)).toIso8601String(),
+        'target_class': 'all', 'target_department': 'Computer Science',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': '💼 Campus Recruitment: Google Pre-Placement Talk',
+        'description': 'Google India team will conduct a pre-placement talk exclusively for CSE students. Attendance is compulsory for all eligible students (CGPA ≥ 7.5). Venue: LT-1, 11 AM Thursday.',
+        'sender_id': 'system', 'sender_name': 'CSE Department (HOD)',
+        'priority': 'Urgent', 'category': 'department',
+        'date': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+        'target_class': 'all', 'target_department': 'Computer Science',
+      },
+    ]);
 
-    await db.from('announcements').insert({
-      'id': const Uuid().v4(),
-      'title': 'Class Schedule Change — Tomorrow',
-      'description': 'Period 3 (OS Lab) moved to Period 5. Check timetable.',
-      'sender_id': 'system',
-      'sender_name': 'CR Alice Johnson',
-      'priority': 'Urgent',
-      'category': 'class',
-      'date': DateTime.now().toIso8601String(),
-      'target_class': 'CSE 2nd Year',
-      'target_department': 'all',
-    });
+    // ── Announcements: CLASS category ─────────────────────────────────────────
+    await db.from('announcements').upsert([
+      {
+        'id': const Uuid().v4(),
+        'title': '⏰ Class Test POSTPONED — Software Engineering (Unit 3)',
+        'description': 'The SE class test scheduled for tomorrow has been postponed to next Monday. Prof. Mehta has confirmed the change. Use this time to revise SDLC models and Agile methodology.',
+        'sender_id': 'system', 'sender_name': 'Aanya Singh (CR — CSE 4C)',
+        'priority': 'Urgent', 'category': 'class',
+        'date': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+        'target_class': 'CSE 4C', 'target_department': 'Computer Science',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': '📋 Assignment 3 Submission — CN (Computer Networks)',
+        'description': 'CN Assignment 3 (TCP/IP Protocols, Routing Algorithms) must be submitted by Friday 5 PM to Dr. Sharma. Submit via ERP portal AND bring a printout. No late submissions accepted.',
+        'sender_id': 'system', 'sender_name': 'Aanya Singh (CR — CSE 4C)',
+        'priority': 'Important', 'category': 'class',
+        'date': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+        'target_class': 'CSE 4C', 'target_department': 'Computer Science',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': '🔬 Mobile App Lab — Bring Laptops Tomorrow',
+        'description': 'Prof. Kumar has confirmed that tomorrow\'s Mobile App Lab (1:45 PM) will require everyone to bring their own laptop with Android Studio installed. Lab systems are under maintenance.',
+        'sender_id': 'system', 'sender_name': 'Aanya Singh (CR — CSE 4C)',
+        'priority': 'Normal', 'category': 'class',
+        'date': DateTime.now().subtract(const Duration(hours: 6)).toIso8601String(),
+        'target_class': 'CSE 4C', 'target_department': 'Computer Science',
+      },
+    ]);
+
+    // ── Messages / Broadcasts ─────────────────────────────────────────────────
+    await db.from('messages').upsert([
+      {
+        'id': const Uuid().v4(),
+        'title': 'Assignment Submission Reminder',
+        'body': 'Reminder: CN Assignment 3 deadline is this Friday at 5 PM. Submit via portal AND bring hardcopy.',
+        'category': 'class', 'sender_id': 'system',
+        'sender_name': 'CR Aanya Singh', 'sender_role': 'student',
+        'priority': 'Important',
+        'timestamp': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'Lab Maintenance Update',
+        'body': 'Lab-1 will be under maintenance tomorrow (Wednesday). CN Lab is shifted to Lab-4. Please note the change.',
+        'category': 'all', 'sender_id': 'system',
+        'sender_name': 'Dr. Sharma', 'sender_role': 'teacher',
+        'priority': 'Normal',
+        'timestamp': DateTime.now().subtract(const Duration(hours: 10)).toIso8601String(),
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'Group Discussion: Final Year Project Topics',
+        'body': 'All CSE 4C students: please fill the Google Form shared in WhatsApp group with your preferred FYP topic by end of day.',
+        'category': 'class', 'sender_id': 'system',
+        'sender_name': 'CR Aanya Singh', 'sender_role': 'student',
+        'priority': 'Normal',
+        'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+      },
+    ]);
+
+    // ── Tasks ─────────────────────────────────────────────────────────────────
+    final now = DateTime.now();
+    await db.from('tasks').upsert([
+      {
+        'id': const Uuid().v4(),
+        'title': 'CN Assignment 3 — Submit via Portal',
+        'description': 'TCP/IP Protocols, Routing Algorithms, Subnetting. Soft copy on portal + hardcopy to Dr. Sharma.',
+        'due_date': DateTime(now.year, now.month, now.day + 3, 17, 0).toIso8601String(),
+        'assigned_by': 'Dr. Sharma', 'priority': 'Urgent',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'SE Unit 3 — Study Agile & SDLC for Postponed Test',
+        'description': 'Test rescheduled to Monday. Topics: Agile, Scrum, Waterfall, Spiral models. Review last year question papers.',
+        'due_date': DateTime(now.year, now.month, now.day + 5, 9, 0).toIso8601String(),
+        'assigned_by': 'Prof. Mehta', 'priority': 'Important',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'ML Lab Report — K-Means Clustering',
+        'description': 'Write lab report for Experiment 6 (K-Means Clustering on Iris dataset). Include output screenshots and analysis.',
+        'due_date': DateTime(now.year, now.month, now.day + 7, 17, 0).toIso8601String(),
+        'assigned_by': 'Dr. Priya R.', 'priority': 'Normal',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'Register for SIH 2024 Hackathon',
+        'description': 'Form team of 6, pick problem statement, register on sih.gov.in before the deadline. Share team details with faculty coordinator.',
+        'due_date': DateTime(now.year, now.month, now.day + 2, 23, 59).toIso8601String(),
+        'assigned_by': 'Prof. Kumar', 'priority': 'Urgent',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'Digital Electronics — Chapter 5 Problems',
+        'description': 'Solve exercise problems from Chapter 5 (Sequential Circuits, Flip-Flops). Required for next lab session.',
+        'due_date': DateTime(now.year, now.month, now.day + 6, 9, 0).toIso8601String(),
+        'assigned_by': 'Prof. Singh', 'priority': 'Normal',
+      },
+      {
+        'id': const Uuid().v4(),
+        'title': 'Mid-Semester Exam Preparation',
+        'description': 'All 5 subjects: CN, ML, SE, DE, AI. Download admit card from ERP portal. Exams start next Monday.',
+        'due_date': DateTime(now.year, now.month, now.day + 8, 8, 0).toIso8601String(),
+        'assigned_by': 'Exam Controller', 'priority': 'Urgent',
+      },
+    ]);
   }
 }
+
