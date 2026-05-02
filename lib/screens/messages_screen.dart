@@ -21,6 +21,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
   final _searchCtrl = TextEditingController();
   List<Map<String, dynamic>> _students = [];
   final List<Map<String, dynamic>> _teachers = List<Map<String, dynamic>>.from(MockData.teachers);
+  String _sectionFilter = 'All';
+  String _groupFilter = 'All';
   bool _loading = true;
 
   @override
@@ -79,6 +81,28 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }).toList();
   }
 
+  List<Map<String, dynamic>> _visibleStudents(String query) {
+    final rows = _students.where(_matchesRosterFilters).toList(growable: false);
+    if (query.trim().isEmpty) return rows;
+    final q = query.toLowerCase();
+    return rows.where((student) {
+      return student['name'].toString().toLowerCase().contains(q) ||
+          student['class_name'].toString().toLowerCase().contains(q) ||
+          student['roll_no'].toString().toLowerCase().contains(q) ||
+          student['section'].toString().toLowerCase().contains(q) ||
+          student['group'].toString().toLowerCase().contains(q) ||
+          student['department'].toString().toLowerCase().contains(q);
+    }).toList(growable: false);
+  }
+
+  bool _matchesRosterFilters(Map<String, dynamic> student) {
+    final section = student['section'].toString();
+    final group = student['group'].toString();
+    final sectionOk = _sectionFilter == 'All' || section == _sectionFilter;
+    final groupOk = _groupFilter == 'All' || group == _groupFilter;
+    return sectionOk && groupOk;
+  }
+
   void _openChat(BuildContext context, AppUser currentUser,
       Map<String, dynamic> contact, {required bool isTeacher}) {
     final subjectLine = isTeacher
@@ -113,6 +137,8 @@ class _MessagesScreenState extends State<MessagesScreen> {
     final user = auth.user;
     final isDesktop = MediaQuery.of(context).size.width >= 960;
     final query = _searchCtrl.text.trim();
+    final visibleStudents = _visibleStudents(query);
+    final visibleTeachers = _filteredTeachers(query);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(isDesktop ? 16 : 12, 12, isDesktop ? 16 : 12, 12),
@@ -126,6 +152,19 @@ class _MessagesScreenState extends State<MessagesScreen> {
               });
             },
           ),
+          const SizedBox(height: 10),
+          _RosterFilters(
+            sectionFilter: _sectionFilter,
+            groupFilter: _groupFilter,
+            onSectionChanged: (value) => setState(() => _sectionFilter = value),
+            onGroupChanged: (value) => setState(() => _groupFilter = value),
+            onClear: (_sectionFilter != 'All' || _groupFilter != 'All')
+                ? () => setState(() {
+                      _sectionFilter = 'All';
+                      _groupFilter = 'All';
+                    })
+                : null,
+          ),
           const SizedBox(height: 12),
           if (isDesktop)
             Expanded(
@@ -135,15 +174,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     child: _ContactsPane(
                       title: 'Students',
                       subtitle: 'CSE 4C roster',
-                      count: _loading ? null : _students.length,
+                      count: _loading ? null : visibleStudents.length,
                       loading: _loading,
                       emptyText: 'No students match the search.',
                       children: _loading
                           ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                          : _students.isEmpty
+                          : visibleStudents.isEmpty
                               ? const []
-                              : List.generate(_students.length, (index) {
-                                  final student = _students[index];
+                              : List.generate(visibleStudents.length, (index) {
+                                  final student = visibleStudents[index];
                                   return _StudentTile(
                                     student: student,
                                     hasUnread: index % 3 == 0,
@@ -157,14 +196,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     child: _ContactsPane(
                       title: 'CSE 4C Teachers',
                       subtitle: 'Faculty and mentors',
-                      count: _loading ? null : _filteredTeachers(query).length,
+                        count: _loading ? null : visibleTeachers.length,
                       loading: _loading,
                       emptyText: 'No teachers match the search.',
                       children: _loading
                           ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                          : _filteredTeachers(query).isEmpty
+                          : visibleTeachers.isEmpty
                               ? const []
-                              : _filteredTeachers(query)
+                            : visibleTeachers
                                   .map((teacher) => _TeacherTile(
                                         teacher: teacher,
                                         onTap: user == null ? null : () => _openChat(context, user, teacher, isTeacher: true),
@@ -200,15 +239,15 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           _ContactsPane(
                             title: 'Students',
                             subtitle: 'CSE 4C roster',
-                            count: _loading ? null : _students.length,
+                            count: _loading ? null : visibleStudents.length,
                             loading: _loading,
                             emptyText: 'No students match the search.',
                             children: _loading
                                 ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                                : _students.isEmpty
+                              : visibleStudents.isEmpty
                                     ? const []
-                                    : List.generate(_students.length, (index) {
-                                        final student = _students[index];
+                                : List.generate(visibleStudents.length, (index) {
+                                  final student = visibleStudents[index];
                                         return _StudentTile(
                                           student: student,
                                           hasUnread: index % 3 == 0,
@@ -219,14 +258,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           _ContactsPane(
                             title: 'Teachers',
                             subtitle: 'CSE 4C faculty',
-                            count: _loading ? null : _filteredTeachers(query).length,
+                            count: _loading ? null : visibleTeachers.length,
                             loading: _loading,
                             emptyText: 'No teachers match the search.',
                             children: _loading
                                 ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                                : _filteredTeachers(query).isEmpty
+                              : visibleTeachers.isEmpty
                                     ? const []
-                                    : _filteredTeachers(query)
+                                : visibleTeachers
                                         .map((teacher) => _TeacherTile(
                                               teacher: teacher,
                                               onTap: user == null ? null : () => _openChat(context, user, teacher, isTeacher: true),
@@ -242,6 +281,104 @@ class _MessagesScreenState extends State<MessagesScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _RosterFilters extends StatelessWidget {
+  final String sectionFilter;
+  final String groupFilter;
+  final ValueChanged<String> onSectionChanged;
+  final ValueChanged<String> onGroupChanged;
+  final VoidCallback? onClear;
+
+  const _RosterFilters({
+    required this.sectionFilter,
+    required this.groupFilter,
+    required this.onSectionChanged,
+    required this.onGroupChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = ['All', ...MockData.availableSections];
+    final groups = ['All', ...MockData.availableGroups];
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          _FilterGroup(
+            label: 'Section',
+            values: sections,
+            selected: sectionFilter,
+            onChanged: onSectionChanged,
+          ),
+          _FilterGroup(
+            label: 'Group',
+            values: groups,
+            selected: groupFilter,
+            onChanged: onGroupChanged,
+          ),
+          if (onClear != null)
+            TextButton.icon(
+              onPressed: onClear,
+              icon: const Icon(Icons.clear_all_rounded, size: 16),
+              label: const Text('Clear filters'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterGroup extends StatelessWidget {
+  final String label;
+  final List<String> values;
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _FilterGroup({
+    required this.label,
+    required this.values,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          '$label:',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.onSurfaceMuted,
+          ),
+        ),
+        ...values.map(
+          (value) => ChoiceChip(
+            label: Text(value),
+            selected: selected == value,
+            onSelected: (_) => onChanged(value),
+            labelStyle: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected == value ? Colors.white : AppTheme.onSurfaceMuted,
+            ),
+            selectedColor: AppTheme.primary,
+            backgroundColor: AppTheme.surfaceCard,
+            side: BorderSide(color: AppTheme.surfaceCardLight.withValues(alpha: 0.2)),
+          ),
+        ),
+      ],
     );
   }
 }

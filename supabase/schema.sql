@@ -12,6 +12,7 @@ create table if not exists public.users (
   class_name text default '',
   roll_no text default '',
   section text default '',
+  group_name text default '',
   subject text default '',
   is_cr boolean default false,
   created_at timestamptz default now()
@@ -19,6 +20,7 @@ create table if not exists public.users (
 
 -- Add is_cr if upgrading from older schema
 alter table public.users add column if not exists is_cr boolean default false;
+alter table public.users add column if not exists group_name text default '';
 
 -- ── students ──────────────────────────────────────────────────────────────────
 create table if not exists public.students (
@@ -27,10 +29,13 @@ create table if not exists public.students (
   class_name text default '',
   roll_no text default '',
   section text default '',
+  group_name text default '',
   department text default '',
   email text default '',
   created_at timestamptz default now()
 );
+
+alter table public.students add column if not exists group_name text default '';
 
 -- ── messages (broadcasts + DMs) ───────────────────────────────────────────────
 create table if not exists public.messages (

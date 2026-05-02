@@ -95,6 +95,7 @@ class FirebaseService {
         className: extra?['className'] ?? '',
         rollNo: extra?['rollNo'] ?? '',
         section: extra?['section'] ?? '',
+        group: extra?['group'] ?? '',
         subject: extra?['subject'] ?? '',
       );
       return _cachedUser!;
@@ -117,6 +118,7 @@ class FirebaseService {
         className: extra?['className'] ?? '',
         rollNo: extra?['rollNo'] ?? '',
         section: extra?['section'] ?? '',
+        group: extra?['group'] ?? '',
         subject: extra?['subject'] ?? '',
       );
 
@@ -128,6 +130,7 @@ class FirebaseService {
           'class_name': user.className,
           'roll_no': user.rollNo,
           'section': user.section,
+          'group_name': user.group,
           'department': user.department,
           'email': email,
         });
@@ -303,20 +306,21 @@ class FirebaseService {
             row['class_name'].toString().toLowerCase().contains(q) ||
             row['roll_no'].toString().toLowerCase().contains(q) ||
             row['section'].toString().toLowerCase().contains(q) ||
+        row['group'].toString().toLowerCase().contains(q) ||
             row['department'].toString().toLowerCase().contains(q);
       }).toList();
     }
     if (query == null || query.trim().isEmpty) {
       final rows = await db.from('students').select().limit(100);
-      return List<Map<String, dynamic>>.from(rows);
+      return _aliasStudentGroup(rows);
     }
     final q = query.trim();
     final rows = await db
         .from('students')
         .select()
-        .or('name.ilike.%$q%,class_name.ilike.%$q%,roll_no.ilike.%$q%')
+        .or('name.ilike.%$q%,class_name.ilike.%$q%,roll_no.ilike.%$q%,section.ilike.%$q%,group_name.ilike.%$q%')
         .limit(100);
-    return List<Map<String, dynamic>>.from(rows);
+    return _aliasStudentGroup(rows);
   }
 
   Future<List<Map<String, dynamic>>> fetchStudentsForClass(
@@ -337,13 +341,19 @@ class FirebaseService {
         .select()
         .ilike('class_name', '%$className%')
         .limit(200);
-    return List<Map<String, dynamic>>.from(rows);
+    return _aliasStudentGroup(rows);
   }
 
   Future<void> importStudents(List<Map<String, dynamic>> students) async {
     if (students.isEmpty) return;
     if (isLocalOnly) return;
-    await db.from('students').upsert(students);
+    final rows = students
+        .map((student) => {
+              ...student,
+              'group_name': student['group'] ?? student['group_name'] ?? '',
+            })
+        .toList(growable: false);
+    await db.from('students').upsert(rows);
   }
 
   Future<void> toggleCR(
@@ -407,33 +417,18 @@ class FirebaseService {
   Future<void> seedDemoData() async {
     if (isLocalOnly) return;
     // ── 20+ Realistic CSE 4C Students ────────────────────────────────────────
-    final students = [
-      {'id': const Uuid().v4(), 'name': 'Aarav Sharma',      'class_name': 'CSE 4C', 'roll_no': 'CS4C01', 'section': 'C', 'department': 'Computer Science', 'email': 'aarav.sharma@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Aanya Singh',       'class_name': 'CSE 4C', 'roll_no': 'CS4C02', 'section': 'C', 'department': 'Computer Science', 'email': 'aanya.singh@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Arjun Mehta',       'class_name': 'CSE 4C', 'roll_no': 'CS4C03', 'section': 'C', 'department': 'Computer Science', 'email': 'arjun.mehta@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Priya Verma',       'class_name': 'CSE 4C', 'roll_no': 'CS4C04', 'section': 'C', 'department': 'Computer Science', 'email': 'priya.verma@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Rohit Gupta',       'class_name': 'CSE 4C', 'roll_no': 'CS4C05', 'section': 'C', 'department': 'Computer Science', 'email': 'rohit.gupta@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Sneha Patel',       'class_name': 'CSE 4C', 'roll_no': 'CS4C06', 'section': 'C', 'department': 'Computer Science', 'email': 'sneha.patel@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Vikram Joshi',      'class_name': 'CSE 4C', 'roll_no': 'CS4C07', 'section': 'C', 'department': 'Computer Science', 'email': 'vikram.joshi@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Divya Nair',        'class_name': 'CSE 4C', 'roll_no': 'CS4C08', 'section': 'C', 'department': 'Computer Science', 'email': 'divya.nair@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Karan Malhotra',    'class_name': 'CSE 4C', 'roll_no': 'CS4C09', 'section': 'C', 'department': 'Computer Science', 'email': 'karan.malhotra@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Meera Iyer',        'class_name': 'CSE 4C', 'roll_no': 'CS4C10', 'section': 'C', 'department': 'Computer Science', 'email': 'meera.iyer@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Nikhil Reddy',      'class_name': 'CSE 4C', 'roll_no': 'CS4C11', 'section': 'C', 'department': 'Computer Science', 'email': 'nikhil.reddy@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Pooja Mishra',      'class_name': 'CSE 4C', 'roll_no': 'CS4C12', 'section': 'C', 'department': 'Computer Science', 'email': 'pooja.mishra@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Rahul Pandey',      'class_name': 'CSE 4C', 'roll_no': 'CS4C13', 'section': 'C', 'department': 'Computer Science', 'email': 'rahul.pandey@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Sanya Kapoor',      'class_name': 'CSE 4C', 'roll_no': 'CS4C14', 'section': 'C', 'department': 'Computer Science', 'email': 'sanya.kapoor@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Tanmay Bhatt',      'class_name': 'CSE 4C', 'roll_no': 'CS4C15', 'section': 'C', 'department': 'Computer Science', 'email': 'tanmay.bhatt@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Urvashi Chandra',   'class_name': 'CSE 4C', 'roll_no': 'CS4C16', 'section': 'C', 'department': 'Computer Science', 'email': 'urvashi.c@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Varun Saxena',      'class_name': 'CSE 4C', 'roll_no': 'CS4C17', 'section': 'C', 'department': 'Computer Science', 'email': 'varun.saxena@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Deepika Rao',       'class_name': 'CSE 4C', 'roll_no': 'CS4C18', 'section': 'C', 'department': 'Computer Science', 'email': 'deepika.rao@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Harayam Jha',       'class_name': 'CSE 4C', 'roll_no': 'CS4C19', 'section': 'C', 'department': 'Computer Science', 'email': 'harayam@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Ishaan Trivedi',    'class_name': 'CSE 4C', 'roll_no': 'CS4C20', 'section': 'C', 'department': 'Computer Science', 'email': 'ishaan.t@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Jyoti Bansal',      'class_name': 'CSE 4C', 'roll_no': 'CS4C21', 'section': 'C', 'department': 'Computer Science', 'email': 'jyoti.b@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Kartik Choudhary',  'class_name': 'CSE 4C', 'roll_no': 'CS4C22', 'section': 'C', 'department': 'Computer Science', 'email': 'kartik.c@college.edu'},
-      // ECE students for variety
-      {'id': const Uuid().v4(), 'name': 'Lavanya Menon',     'class_name': 'ECE 4A', 'roll_no': 'EC4A01', 'section': 'A', 'department': 'Electronics', 'email': 'lavanya.m@college.edu'},
-      {'id': const Uuid().v4(), 'name': 'Manish Tripathi',   'class_name': 'ECE 4A', 'roll_no': 'EC4A02', 'section': 'A', 'department': 'Electronics', 'email': 'manish.t@college.edu'},
-    ];
+    final students = MockData.students
+        .map((student) => {
+              'id': student['id'],
+              'name': student['name'],
+              'class_name': student['class_name'],
+              'roll_no': student['roll_no'],
+              'section': student['section'],
+              'group_name': student['group'],
+              'department': student['department'],
+              'email': student['email'] ?? '',
+            })
+        .toList(growable: false);
     await db.from('students').upsert(students);
 
     // ── Announcements: ALL category ───────────────────────────────────────────
@@ -476,7 +471,7 @@ class FirebaseService {
         'sender_id': 'system', 'sender_name': 'Dr. Priya R. (ML Faculty)',
         'priority': 'Important', 'category': 'department',
         'date': DateTime.now().subtract(const Duration(hours: 8)).toIso8601String(),
-        'target_class': 'all', 'target_department': 'Computer Science',
+        'target_class': 'all', 'target_department': 'CSE',
       },
       {
         'id': const Uuid().v4(),
@@ -485,7 +480,7 @@ class FirebaseService {
         'sender_id': 'system', 'sender_name': 'CSE Department (HOD)',
         'priority': 'Urgent', 'category': 'department',
         'date': DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
-        'target_class': 'all', 'target_department': 'Computer Science',
+        'target_class': 'all', 'target_department': 'CSE',
       },
     ]);
 
@@ -495,28 +490,28 @@ class FirebaseService {
         'id': const Uuid().v4(),
         'title': '⏰ Class Test POSTPONED — Software Engineering (Unit 3)',
         'description': 'The SE class test scheduled for tomorrow has been postponed to next Monday. Prof. Mehta has confirmed the change. Use this time to revise SDLC models and Agile methodology.',
-        'sender_id': 'system', 'sender_name': 'Aanya Singh (CR — CSE 4C)',
+        'sender_id': 'system', 'sender_name': 'Avishi Gupta (CR — CSE 4C)',
         'priority': 'Urgent', 'category': 'class',
         'date': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
-        'target_class': 'CSE 4C', 'target_department': 'Computer Science',
+        'target_class': 'CSE 4C', 'target_department': 'CSE',
       },
       {
         'id': const Uuid().v4(),
         'title': '📋 Assignment 3 Submission — CN (Computer Networks)',
         'description': 'CN Assignment 3 (TCP/IP Protocols, Routing Algorithms) must be submitted by Friday 5 PM to Dr. Sharma. Submit via ERP portal AND bring a printout. No late submissions accepted.',
-        'sender_id': 'system', 'sender_name': 'Aanya Singh (CR — CSE 4C)',
+        'sender_id': 'system', 'sender_name': 'Hariom Jha (CR — CSE 4C)',
         'priority': 'Important', 'category': 'class',
         'date': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
-        'target_class': 'CSE 4C', 'target_department': 'Computer Science',
+        'target_class': 'CSE 4C', 'target_department': 'CSE',
       },
       {
         'id': const Uuid().v4(),
         'title': '🔬 Mobile App Lab — Bring Laptops Tomorrow',
         'description': 'Prof. Kumar has confirmed that tomorrow\'s Mobile App Lab (1:45 PM) will require everyone to bring their own laptop with Android Studio installed. Lab systems are under maintenance.',
-        'sender_id': 'system', 'sender_name': 'Aanya Singh (CR — CSE 4C)',
+        'sender_id': 'system', 'sender_name': 'Avishi Gupta (CR — CSE 4C)',
         'priority': 'Normal', 'category': 'class',
         'date': DateTime.now().subtract(const Duration(hours: 6)).toIso8601String(),
-        'target_class': 'CSE 4C', 'target_department': 'Computer Science',
+        'target_class': 'CSE 4C', 'target_department': 'CSE',
       },
     ]);
 
@@ -527,7 +522,7 @@ class FirebaseService {
         'title': 'Assignment Submission Reminder',
         'body': 'Reminder: CN Assignment 3 deadline is this Friday at 5 PM. Submit via portal AND bring hardcopy.',
         'category': 'class', 'sender_id': 'system',
-        'sender_name': 'CR Aanya Singh', 'sender_role': 'student',
+        'sender_name': 'CR Avishi Gupta', 'sender_role': 'student',
         'priority': 'Important',
         'timestamp': DateTime.now().subtract(const Duration(hours: 3)).toIso8601String(),
       },
@@ -545,7 +540,7 @@ class FirebaseService {
         'title': 'Group Discussion: Final Year Project Topics',
         'body': 'All CSE 4C students: please fill the Google Form shared in WhatsApp group with your preferred FYP topic by end of day.',
         'category': 'class', 'sender_id': 'system',
-        'sender_name': 'CR Aanya Singh', 'sender_role': 'student',
+        'sender_name': 'CR Avishi Gupta', 'sender_role': 'student',
         'priority': 'Normal',
         'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
       },
@@ -597,6 +592,14 @@ class FirebaseService {
         'assigned_by': 'Exam Controller', 'priority': 'Urgent',
       },
     ]);
+  }
+
+  List<Map<String, dynamic>> _aliasStudentGroup(dynamic rows) {
+    return List<Map<String, dynamic>>.from(rows).map((row) {
+      final map = Map<String, dynamic>.from(row);
+      map['group'] = map['group_name'] ?? map['group'] ?? '';
+      return map;
+    }).toList(growable: false);
   }
 }
 

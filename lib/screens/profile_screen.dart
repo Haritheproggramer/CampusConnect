@@ -48,6 +48,7 @@ class ProfileScreen extends StatelessWidget {
           _InfoItem(label: 'Roll No', value: user?.rollNo.isNotEmpty == true ? user!.rollNo : '—', icon: Icons.numbers_outlined),
           _InfoItem(label: 'Department', value: user?.department.isNotEmpty == true ? user!.department : '—', icon: Icons.apartment_outlined),
           _InfoItem(label: 'Section', value: user?.section.isNotEmpty == true ? user!.section : '—', icon: Icons.grid_view_rounded),
+          _InfoItem(label: 'Group', value: user?.group.isNotEmpty == true ? user!.group : '—', icon: Icons.groups_outlined),
           _InfoItem(label: 'Email', value: user?.email.isNotEmpty == true ? user!.email : '—', icon: Icons.email_outlined),
           _InfoItem(label: 'CR status', value: user?.isCR == true ? 'Class Representative' : 'Not CR', icon: Icons.verified_outlined),
         ];
@@ -195,6 +196,8 @@ class _HeaderCard extends StatelessWidget {
                     _Badge(label: (user?.role ?? 'student').toUpperCase()),
                     if (user?.department?.toString().isNotEmpty == true)
                       _Badge(label: user!.department),
+                    if (user?.group?.toString().isNotEmpty == true)
+                      _Badge(label: 'Group ${user!.group}'),
                     if (user?.isCR == true) _Badge(label: 'CR'),
                   ],
                 ),

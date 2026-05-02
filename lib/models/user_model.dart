@@ -7,6 +7,7 @@ class AppUser {
   final String className;
   final String rollNo;
   final String section;
+  final String group;
   final String subject;
   final bool isCR; // Class Representative flag
 
@@ -19,6 +20,7 @@ class AppUser {
     this.className = '',
     this.rollNo = '',
     this.section = '',
+    this.group = '',
     this.subject = '',
     this.isCR = false,
   });
@@ -35,6 +37,7 @@ class AppUser {
         'class_name': className,
         'roll_no': rollNo,
         'section': section,
+        'group_name': group,
         'subject': subject,
         'is_cr': isCR,
       };
@@ -48,6 +51,7 @@ class AppUser {
         className: m['class_name'] ?? m['className'] ?? '',
         rollNo: m['roll_no'] ?? m['rollNo'] ?? '',
         section: m['section'] ?? '',
+        group: m['group_name'] ?? m['group'] ?? '',
         subject: m['subject'] ?? '',
         isCR: m['is_cr'] == true || m['isCR'] == true,
       );

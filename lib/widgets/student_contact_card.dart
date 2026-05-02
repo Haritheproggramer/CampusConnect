@@ -21,6 +21,7 @@ class StudentContactCard extends StatelessWidget {
     final name = (student['name'] ?? 'Unknown').toString();
     final className = (student['class_name'] ?? '').toString();
     final rollNo = (student['roll_no'] ?? '—').toString();
+    final group = (student['group'] ?? '').toString();
     final initials = name.isNotEmpty
         ? name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
         : '?';
@@ -93,9 +94,11 @@ class StudentContactCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    className.isNotEmpty
-                        ? '$className  ·  Roll No: $rollNo'
-                        : 'Roll No: $rollNo',
+                    [
+                      if (className.isNotEmpty) className,
+                      if (group.isNotEmpty) 'Group $group',
+                      'Roll No: $rollNo',
+                    ].join('  ·  '),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppTheme.onSurfaceMuted,

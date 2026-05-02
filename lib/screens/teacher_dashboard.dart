@@ -10,6 +10,7 @@ import '../providers/announcement_provider.dart';
 import '../services/firebase_service.dart';
 import '../models/announcement_model.dart';
 import '../models/message_model.dart';
+import '../utils/mock_data.dart';
 import '../utils/app_theme.dart';
 import '../widgets/broadcast_card.dart';
 import '../widgets/shimmer_loader.dart';
@@ -463,6 +464,8 @@ class _StudentsTab extends StatefulWidget {
 class _StudentsTabState extends State<_StudentsTab> {
   final _searchCtrl = TextEditingController();
   List<Map<String, dynamic>> _students = [];
+  String _sectionFilter = 'All';
+  String _groupFilter = 'All';
   bool _loading = true;
 
   @override
@@ -489,6 +492,28 @@ class _StudentsTabState extends State<_StudentsTab> {
     }
   }
 
+  List<Map<String, dynamic>> _visibleStudents(String query) {
+    final rows = _students.where(_matchesFilters).toList(growable: false);
+    if (query.trim().isEmpty) return rows;
+    final q = query.toLowerCase();
+    return rows.where((student) {
+      return student['name'].toString().toLowerCase().contains(q) ||
+          student['class_name'].toString().toLowerCase().contains(q) ||
+          student['roll_no'].toString().toLowerCase().contains(q) ||
+          student['section'].toString().toLowerCase().contains(q) ||
+          student['group'].toString().toLowerCase().contains(q) ||
+          student['department'].toString().toLowerCase().contains(q);
+    }).toList(growable: false);
+  }
+
+  bool _matchesFilters(Map<String, dynamic> student) {
+    final section = student['section'].toString();
+    final group = student['group'].toString();
+    final sectionOk = _sectionFilter == 'All' || section == _sectionFilter;
+    final groupOk = _groupFilter == 'All' || group == _groupFilter;
+    return sectionOk && groupOk;
+  }
+
   Future<void> _importXlsx() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -512,11 +537,12 @@ class _StudentsTabState extends State<_StudentsTab> {
       rows.add({
         'id': const Uuid().v4(),
         'name': name,
-        'class_name': cell(1).isEmpty ? 'CSE 2nd Year' : cell(1),
+        'class_name': cell(1).isEmpty ? 'CSE 4C' : cell(1),
         'roll_no': cell(2),
-        'section': cell(3).isEmpty ? 'A' : cell(3),
-        'department': cell(4).isEmpty ? 'Computer Science' : cell(4),
-        'email': cell(5),
+        'section': cell(3).isEmpty ? 'C' : cell(3),
+        'group': cell(4).isEmpty ? 'G1' : cell(4),
+        'department': cell(5).isEmpty ? 'CSE' : cell(5),
+        'email': cell(6),
       });
     }
 
@@ -536,35 +562,74 @@ class _StudentsTabState extends State<_StudentsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final query = _searchCtrl.text.trim();
+    final visibleStudents = _visibleStudents(query);
+
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchCtrl,
-                  onChanged: (v) => Future.delayed(
-                      const Duration(milliseconds: 350),
-                      () => _load(query: v)),
-                  style: const TextStyle(color: AppTheme.onSurface),
-                  decoration: const InputDecoration(
-                    hintText: 'Search students...',
-                    prefixIcon:
-                        Icon(Icons.search, color: AppTheme.onSurfaceMuted, size: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      onChanged: (v) => Future.delayed(
+                          const Duration(milliseconds: 350),
+                          () => _load(query: v)),
+                      style: const TextStyle(color: AppTheme.onSurface),
+                      decoration: const InputDecoration(
+                        hintText: 'Search students...',
+                        prefixIcon:
+                            Icon(Icons.search, color: AppTheme.onSurfaceMuted, size: 20),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.upload_file, size: 16),
+                    label: const Text('Import XLSX'),
+                    onPressed: _importXlsx,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.catDept,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.upload_file, size: 16),
-                label: const Text('Import XLSX'),
-                onPressed: _importXlsx,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.catDept,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _FilterGroup(
+                      label: 'Section',
+                      values: ['All', ...MockData.availableSections],
+                      selected: _sectionFilter,
+                      onChanged: (value) => setState(() => _sectionFilter = value),
+                    ),
+                    _FilterGroup(
+                      label: 'Group',
+                      values: ['All', ...MockData.availableGroups],
+                      selected: _groupFilter,
+                      onChanged: (value) => setState(() => _groupFilter = value),
+                    ),
+                    if (_sectionFilter != 'All' || _groupFilter != 'All')
+                      TextButton.icon(
+                        onPressed: () => setState(() {
+                          _sectionFilter = 'All';
+                          _groupFilter = 'All';
+                        }),
+                        icon: const Icon(Icons.clear_all_rounded, size: 16),
+                        label: const Text('Clear filters'),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -574,16 +639,16 @@ class _StudentsTabState extends State<_StudentsTab> {
           child: _loading
               ? ListView.builder(
                   itemCount: 8, itemBuilder: (_, __) => const ShimmerContactCard())
-              : _students.isEmpty
+              : visibleStudents.isEmpty
                   ? const EmptyState(
                       icon: Icons.people_outline,
                       title: 'No students found',
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.only(bottom: 24),
-                      itemCount: _students.length,
+                      itemCount: visibleStudents.length,
                       itemBuilder: (context, i) {
-                        final s = _students[i];
+                        final s = visibleStudents[i];
                         final isCR = s['is_cr'] == true;
                         return Container(
                           margin: const EdgeInsets.symmetric(
@@ -654,6 +719,24 @@ class _StudentsTabState extends State<_StudentsTab> {
                                           fontSize: 11,
                                           color: AppTheme.onSurfaceMuted),
                                     ),
+                                    if ((s['group'] ?? '').toString().isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.surfaceCardLight.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                        child: Text(
+                                          'Group ${(s['group'] ?? '').toString()}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.onSurfaceMuted,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -677,6 +760,53 @@ class _StudentsTabState extends State<_StudentsTab> {
                         );
                       },
                     ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FilterGroup extends StatelessWidget {
+  final String label;
+  final List<String> values;
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _FilterGroup({
+    required this.label,
+    required this.values,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          '$label:',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.onSurfaceMuted,
+          ),
+        ),
+        ...values.map(
+          (value) => ChoiceChip(
+            label: Text(value),
+            selected: selected == value,
+            onSelected: (_) => onChanged(value),
+            labelStyle: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: selected == value ? Colors.white : AppTheme.onSurfaceMuted,
+            ),
+            selectedColor: AppTheme.primary,
+            backgroundColor: AppTheme.surfaceCard,
+            side: BorderSide(color: AppTheme.surfaceCardLight.withValues(alpha: 0.2)),
+          ),
         ),
       ],
     );

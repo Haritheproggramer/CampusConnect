@@ -3,48 +3,39 @@ import '../models/message_model.dart';
 import '../models/task_model.dart';
 import '../models/user_model.dart';
 import '../utils/app_theme.dart';
+import 'section_rosters.dart';
 
 /// Local fallback data shown whenever Supabase is unavailable.
 /// Keeps the demo usable without surfacing technical setup issues.
 class MockData {
-  static const String demoStudentId = 'cse4c-01';
+  static const String demoStudentId = '2K24CSUN01152';
 
   static AppUser get demoUser => AppUser(
         id: demoStudentId,
-        name: 'Aarav Sharma',
+        name: 'Avishi Gupta',
         role: 'student',
-        email: 'aarav.sharma@campusconnect.demo',
-        department: 'Computer Science',
+        email: 'avishi.gupta@campusconnect.demo',
+        department: 'CSE',
         className: 'CSE 4C',
-        rollNo: 'CS4C01',
+        rollNo: '2K24CSUN01152',
         section: 'C',
+        group: 'G1',
         isCR: true,
       );
 
-  static List<Map<String, dynamic>> get students => [
-        {'id': 'cse4c-01', 'name': 'Aarav Sharma', 'class_name': 'CSE 4C', 'roll_no': 'CS4C01', 'section': 'C', 'department': 'Computer Science', 'email': 'aarav.sharma@college.edu'},
-        {'id': 'cse4c-02', 'name': 'Aanya Singh', 'class_name': 'CSE 4C', 'roll_no': 'CS4C02', 'section': 'C', 'department': 'Computer Science', 'email': 'aanya.singh@college.edu'},
-        {'id': 'cse4c-03', 'name': 'Arjun Mehta', 'class_name': 'CSE 4C', 'roll_no': 'CS4C03', 'section': 'C', 'department': 'Computer Science', 'email': 'arjun.mehta@college.edu'},
-        {'id': 'cse4c-04', 'name': 'Priya Verma', 'class_name': 'CSE 4C', 'roll_no': 'CS4C04', 'section': 'C', 'department': 'Computer Science', 'email': 'priya.verma@college.edu'},
-        {'id': 'cse4c-05', 'name': 'Rohit Gupta', 'class_name': 'CSE 4C', 'roll_no': 'CS4C05', 'section': 'C', 'department': 'Computer Science', 'email': 'rohit.gupta@college.edu'},
-        {'id': 'cse4c-06', 'name': 'Sneha Patel', 'class_name': 'CSE 4C', 'roll_no': 'CS4C06', 'section': 'C', 'department': 'Computer Science', 'email': 'sneha.patel@college.edu'},
-        {'id': 'cse4c-07', 'name': 'Vikram Joshi', 'class_name': 'CSE 4C', 'roll_no': 'CS4C07', 'section': 'C', 'department': 'Computer Science', 'email': 'vikram.joshi@college.edu'},
-        {'id': 'cse4c-08', 'name': 'Divya Nair', 'class_name': 'CSE 4C', 'roll_no': 'CS4C08', 'section': 'C', 'department': 'Computer Science', 'email': 'divya.nair@college.edu'},
-        {'id': 'cse4c-09', 'name': 'Karan Malhotra', 'class_name': 'CSE 4C', 'roll_no': 'CS4C09', 'section': 'C', 'department': 'Computer Science', 'email': 'karan.malhotra@college.edu'},
-        {'id': 'cse4c-10', 'name': 'Meera Iyer', 'class_name': 'CSE 4C', 'roll_no': 'CS4C10', 'section': 'C', 'department': 'Computer Science', 'email': 'meera.iyer@college.edu'},
-        {'id': 'cse4c-11', 'name': 'Nikhil Reddy', 'class_name': 'CSE 4C', 'roll_no': 'CS4C11', 'section': 'C', 'department': 'Computer Science', 'email': 'nikhil.reddy@college.edu'},
-        {'id': 'cse4c-12', 'name': 'Pooja Mishra', 'class_name': 'CSE 4C', 'roll_no': 'CS4C12', 'section': 'C', 'department': 'Computer Science', 'email': 'pooja.mishra@college.edu'},
-        {'id': 'cse4c-13', 'name': 'Rahul Pandey', 'class_name': 'CSE 4C', 'roll_no': 'CS4C13', 'section': 'C', 'department': 'Computer Science', 'email': 'rahul.pandey@college.edu'},
-        {'id': 'cse4c-14', 'name': 'Sanya Kapoor', 'class_name': 'CSE 4C', 'roll_no': 'CS4C14', 'section': 'C', 'department': 'Computer Science', 'email': 'sanya.kapoor@college.edu'},
-        {'id': 'cse4c-15', 'name': 'Tanmay Bhatt', 'class_name': 'CSE 4C', 'roll_no': 'CS4C15', 'section': 'C', 'department': 'Computer Science', 'email': 'tanmay.bhatt@college.edu'},
-        {'id': 'cse4c-16', 'name': 'Urvashi Chandra', 'class_name': 'CSE 4C', 'roll_no': 'CS4C16', 'section': 'C', 'department': 'Computer Science', 'email': 'urvashi.chandra@college.edu'},
-        {'id': 'cse4c-17', 'name': 'Varun Saxena', 'class_name': 'CSE 4C', 'roll_no': 'CS4C17', 'section': 'C', 'department': 'Computer Science', 'email': 'varun.saxena@college.edu'},
-        {'id': 'cse4c-18', 'name': 'Deepika Rao', 'class_name': 'CSE 4C', 'roll_no': 'CS4C18', 'section': 'C', 'department': 'Computer Science', 'email': 'deepika.rao@college.edu'},
-        {'id': 'cse4c-19', 'name': 'Harsh Jha', 'class_name': 'CSE 4C', 'roll_no': 'CS4C19', 'section': 'C', 'department': 'Computer Science', 'email': 'harsh.jha@college.edu'},
-        {'id': 'cse4c-20', 'name': 'Ishaan Trivedi', 'class_name': 'CSE 4C', 'roll_no': 'CS4C20', 'section': 'C', 'department': 'Computer Science', 'email': 'ishaan.trivedi@college.edu'},
-        {'id': 'cse4c-21', 'name': 'Jyoti Bansal', 'class_name': 'CSE 4C', 'roll_no': 'CS4C21', 'section': 'C', 'department': 'Computer Science', 'email': 'jyoti.bansal@college.edu'},
-        {'id': 'cse4c-22', 'name': 'Kartik Choudhary', 'class_name': 'CSE 4C', 'roll_no': 'CS4C22', 'section': 'C', 'department': 'Computer Science', 'email': 'kartik.choudhary@college.edu'},
-      ];
+  static List<Map<String, dynamic>> get students => SectionRosterData.allStudents
+      .map((student) => {
+            ...student,
+            'id': student['roll_no'],
+          })
+      .toList(growable: false);
+
+  static List<Map<String, dynamic>> studentsForSection(String className) =>
+      SectionRosterData.studentsForSection(className);
+
+  static List<String> get availableSections => SectionRosterData.availableSections;
+
+  static List<String> get availableGroups => SectionRosterData.availableGroups;
 
   static List<Map<String, dynamic>> get teachers => [
         {'id': 'teacher-monika', 'name': 'Dr. Monika Lamba', 'subject': 'Machine Learning', 'role': 'Mentor'},
@@ -152,8 +143,8 @@ class MockData {
           title: 'Group discussion',
           body: 'Please post your final project topic in the CSE 4C group before the mentor meeting tomorrow.',
           category: 'class',
-          senderId: 'cse4c-02',
-          senderName: 'Aanya Singh',
+          senderId: demoStudentId,
+          senderName: 'Avishi Gupta',
           senderRole: 'student',
           priority: 'Normal',
           timestamp: DateTime.now().subtract(const Duration(days: 1)),
@@ -169,7 +160,7 @@ class MockData {
           senderName: 'Dr. Monika Lamba',
           senderRole: 'teacher',
           receiverId: demoStudentId,
-          receiverName: 'Aarav Sharma',
+          receiverName: 'Avishi Gupta',
           timestamp: DateTime.now().subtract(const Duration(hours: 3)),
         ),
         MessageModel(
@@ -180,7 +171,7 @@ class MockData {
           senderName: 'Pushpa Ma\'am',
           senderRole: 'teacher',
           receiverId: demoStudentId,
-          receiverName: 'Aarav Sharma',
+          receiverName: 'Avishi Gupta',
           timestamp: DateTime.now().subtract(const Duration(hours: 5)),
         ),
         MessageModel(
@@ -188,10 +179,10 @@ class MockData {
           title: '',
           body: 'Class schedule change noted. I have updated the shared group sheet.',
           senderId: demoStudentId,
-          senderName: 'Aarav Sharma',
+          senderName: 'Avishi Gupta',
           senderRole: 'student',
-          receiverId: 'cse4c-02',
-          receiverName: 'Aanya Singh',
+          receiverId: '2K24CSUN01157',
+          receiverName: 'Hariom Jha',
           timestamp: DateTime.now().subtract(const Duration(hours: 9)),
         ),
         MessageModel(
@@ -199,10 +190,10 @@ class MockData {
           title: '',
           body: 'Let us coordinate the group discussion after lunch and finalize the slide order.',
           senderId: demoStudentId,
-          senderName: 'Aarav Sharma',
+          senderName: 'Avishi Gupta',
           senderRole: 'student',
-          receiverId: 'cse4c-05',
-          receiverName: 'Rohit Gupta',
+          receiverId: '2K24CSUN01157',
+          receiverName: 'Hariom Jha',
           timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
         ),
       ];
