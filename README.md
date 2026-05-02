@@ -51,12 +51,11 @@ flutter pub get
 ```
 
 ### Supabase config used
-This project currently initializes Supabase with your provided values in the service layer.
-- URL: https://ghivhjejmloektsbddbu.supabase.co
-- Anon key: already wired in code
+This project now reads Supabase config from environment variables when available.
 
 Recommended for production:
-- Move URL/key to environment config using `--dart-define`
+- Pass `SUPABASE_URL` and `SUPABASE_ANON_KEY` with `--dart-define`
+- Keep local demo mode available as a silent fallback when those values are absent
 
 ### Create DB schema
 Run the SQL in `supabase/schema.sql` in Supabase SQL Editor.

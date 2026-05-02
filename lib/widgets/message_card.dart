@@ -27,7 +27,7 @@ class BroadcastCard extends StatelessWidget {
           color: AppTheme.surfaceCard,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: cat.color.withOpacity(0.3),
+            color: cat.color.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -103,7 +103,7 @@ class _CategoryChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: category.color.withOpacity(0.15),
+        color: category.color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -214,7 +214,7 @@ class MessageCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(

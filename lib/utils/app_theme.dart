@@ -57,7 +57,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surfaceCard,
-        indicatorColor: primary.withOpacity(0.2),
+        indicatorColor: primary.withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.all(
           GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: onSurface),
         ),
@@ -81,7 +81,7 @@ class AppTheme {
           fontSize: 12,
           color: onSurfaceMuted,
         ),
-        indicatorColor: primary.withOpacity(0.15),
+        indicatorColor: primary.withValues(alpha: 0.15),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

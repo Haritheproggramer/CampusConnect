@@ -52,7 +52,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.15),
+                color: AppTheme.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child:
@@ -270,7 +270,7 @@ class _PostTabState extends State<_PostTab> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: sel ? cat.color.withOpacity(0.2) : AppTheme.surfaceCardLight,
+                color: sel ? cat.color.withValues(alpha: 0.2) : AppTheme.surfaceCardLight,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: sel ? cat.color : Colors.transparent,
@@ -598,7 +598,7 @@ class _StudentsTabState extends State<_StudentsTab> {
                               CircleAvatar(
                                 radius: 20,
                                 backgroundColor:
-                                    AppTheme.primary.withOpacity(0.15),
+                                    AppTheme.primary.withValues(alpha: 0.15),
                                 child: Text(
                                   (s['name'] as String? ?? '?')
                                       .trim()
@@ -635,7 +635,7 @@ class _StudentsTabState extends State<_StudentsTab> {
                                                 horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
                                               color: AppTheme.catClass
-                                                  .withOpacity(0.15),
+                                                  .withValues(alpha: 0.15),
                                               borderRadius:
                                                   BorderRadius.circular(6),
                                             ),

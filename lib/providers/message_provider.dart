@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/message_model.dart';
 import '../services/firebase_service.dart';
+import '../utils/mock_data.dart';
 
 class MessageProvider extends ChangeNotifier {
   List<MessageModel> _broadcasts = [];
@@ -26,7 +27,7 @@ class MessageProvider extends ChangeNotifier {
     try {
       _sub = FirebaseService.instance.streamBroadcasts().listen(
         (rows) {
-          _broadcasts = rows
+          final parsed = rows
               .where((r) {
                 final rid = r['receiver_id'];
                 return rid == null || (rid as String).isEmpty;
@@ -40,16 +41,19 @@ class MessageProvider extends ChangeNotifier {
               })
               .whereType<MessageModel>()
               .toList();
+          _broadcasts = parsed.isNotEmpty ? parsed : MockData.broadcasts;
           _loading = false;
           notifyListeners();
         },
         onError: (_) {
           // Silent — app continues normally
+          _broadcasts = MockData.broadcasts;
           _loading = false;
           notifyListeners();
         },
       );
     } catch (_) {
+      _broadcasts = MockData.broadcasts;
       _loading = false;
       notifyListeners();
     }

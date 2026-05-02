@@ -100,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppTheme.primary.withOpacity(0.18),
+              backgroundColor: AppTheme.primary.withValues(alpha: 0.18),
               child: Text(
                 initials,
                 style: GoogleFonts.inter(
@@ -258,7 +258,7 @@ class _ChatScreenState extends State<ChatScreen> {
               height: 46,
               decoration: BoxDecoration(
                 color: _sending
-                    ? AppTheme.primary.withOpacity(0.5)
+                    ? AppTheme.primary.withValues(alpha: 0.5)
                     : AppTheme.primary,
                 shape: BoxShape.circle,
               ),

@@ -5,26 +5,39 @@ import '../models/user_model.dart';
 import '../models/message_model.dart';
 import '../models/announcement_model.dart';
 import '../models/task_model.dart';
+import '../utils/mock_data.dart';
 
 class FirebaseService {
   FirebaseService._private();
   static final FirebaseService instance = FirebaseService._private();
 
-  static const String _supabaseUrl = 'https://ghivhjejmloektsbddbu.supabase.co';
+  static const String _supabaseUrl = String.fromEnvironment('SUPABASE_URL');
   static const String _supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdoaXZoamVqbWxvZWt0c2JkZGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NzQ0OTcsImV4cCI6MjA5MzA1MDQ5N30.oSCbEkP8MF3Bmn5CcrpIRpuFoLMJv8uG_7jUFETgVvo';
+      String.fromEnvironment('SUPABASE_ANON_KEY');
 
   bool _initialized = false;
+  bool _backendReady = false;
 
   // ── In-memory cache ──────────────────────────────────────────────────────
   AppUser? _cachedUser;
 
   SupabaseClient get db => Supabase.instance.client;
-  User? get currentAuthUser => db.auth.currentUser;
+  bool get isLocalOnly => !_backendReady;
+  User? get currentAuthUser => _backendReady ? db.auth.currentUser : null;
 
   Future<void> init() async {
     if (_initialized) return;
-    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+    if (_supabaseUrl.isEmpty || _supabaseAnonKey.isEmpty) {
+      _backendReady = false;
+      _initialized = true;
+      return;
+    }
+    try {
+      await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
+      _backendReady = true;
+    } catch (_) {
+      _backendReady = false;
+    }
     _initialized = true;
   }
 
@@ -32,6 +45,10 @@ class FirebaseService {
 
   Future<AppUser?> getCurrentUserProfile({bool forceRefresh = false}) async {
     if (!forceRefresh && _cachedUser != null) return _cachedUser;
+    if (isLocalOnly) {
+      _cachedUser = _cachedUser ?? MockData.demoUser;
+      return _cachedUser;
+    }
     final u = currentAuthUser;
     if (u == null) {
       _cachedUser = null;
@@ -68,6 +85,20 @@ class FirebaseService {
     required String role,
     Map<String, dynamic>? extra,
   }) async {
+    if (isLocalOnly) {
+      _cachedUser = AppUser(
+        id: MockData.demoStudentId,
+        name: name,
+        role: role,
+        email: email,
+        department: extra?['department'] ?? '',
+        className: extra?['className'] ?? '',
+        rollNo: extra?['rollNo'] ?? '',
+        section: extra?['section'] ?? '',
+        subject: extra?['subject'] ?? '',
+      );
+      return _cachedUser!;
+    }
     try {
       final resp = await db.auth.signUp(
         email: email,
@@ -128,12 +159,18 @@ class FirebaseService {
 
   Future<AppUser?> signInWithEmail(
       {required String email, required String password}) async {
+    if (isLocalOnly) {
+      _cachedUser = MockData.demoUser;
+      return _cachedUser;
+    }
     await db.auth.signInWithPassword(email: email, password: password);
     return getCurrentUserProfile(forceRefresh: true);
   }
 
   Future<void> signOut() async {
-    await db.auth.signOut();
+    if (!isLocalOnly) {
+      await db.auth.signOut();
+    }
     _cachedUser = null;
   }
 
@@ -141,6 +178,9 @@ class FirebaseService {
 
   /// Single stream — all announcements ordered by date desc
   Stream<List<Map<String, dynamic>>> streamAnnouncements() {
+    if (isLocalOnly) {
+      return Stream.value(MockData.announcements.map((a) => a.toMap()).toList());
+    }
     return db
         .from('announcements')
         .stream(primaryKey: ['id'])
@@ -148,6 +188,7 @@ class FirebaseService {
   }
 
   Future<void> createAnnouncement(AnnouncementModel a) async {
+    if (isLocalOnly) return;
     final id = const Uuid().v4();
     await db.from('announcements').insert(a.toMap()..['id'] = id);
   }
@@ -156,6 +197,9 @@ class FirebaseService {
 
   /// Broadcasts are messages without a receiver_id
   Stream<List<Map<String, dynamic>>> streamBroadcasts() {
+    if (isLocalOnly) {
+      return Stream.value(MockData.broadcasts.map((m) => m.toMap()).toList());
+    }
     return db
         .from('messages')
         .stream(primaryKey: ['id'])
@@ -167,6 +211,23 @@ class FirebaseService {
   /// Stream of DMs between two users (either direction)
   Stream<List<Map<String, dynamic>>> streamDirectMessages(
       String userId, String otherId) {
+    if (isLocalOnly) {
+      final rows = MockData.directMessages
+          .where((m) {
+            final senderId = m.senderId;
+            final receiverId = m.receiverId ?? '';
+            return (senderId == userId && receiverId == otherId) ||
+                (senderId == otherId && receiverId == userId);
+          })
+          .map((m) => m.toMap())
+          .toList()
+        ..sort((a, b) {
+          final left = DateTime.tryParse((a['timestamp'] ?? '').toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final right = DateTime.tryParse((b['timestamp'] ?? '').toString()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return left.compareTo(right);
+        });
+      return Stream.value(rows);
+    }
     // We filter client-side since Supabase stream doesn't support OR filters
     return db
         .from('messages')
@@ -190,6 +251,7 @@ class FirebaseService {
     required String receiverName,
     required String body,
   }) async {
+    if (isLocalOnly) return;
     final id = const Uuid().v4();
     final m = MessageModel(
       id: id,
@@ -206,6 +268,7 @@ class FirebaseService {
   }
 
   Future<void> createMessage(MessageModel m) async {
+    if (isLocalOnly) return;
     final id = const Uuid().v4();
     await db.from('messages').insert(m.toMap()..['id'] = id);
   }
@@ -213,6 +276,9 @@ class FirebaseService {
   // ── Tasks ─────────────────────────────────────────────────────────────────
 
   Stream<List<Map<String, dynamic>>> streamTasks() {
+    if (isLocalOnly) {
+      return Stream.value(MockData.tasks.map((t) => t.toMap()).toList());
+    }
     return db
         .from('tasks')
         .stream(primaryKey: ['id'])
@@ -220,6 +286,7 @@ class FirebaseService {
   }
 
   Future<void> createTask(TaskModel t) async {
+    if (isLocalOnly) return;
     final id = const Uuid().v4();
     await db.from('tasks').insert(t.toMap()..['id'] = id);
   }
@@ -227,6 +294,18 @@ class FirebaseService {
   // ── Students ──────────────────────────────────────────────────────────────
 
   Future<List<Map<String, dynamic>>> searchStudents({String? query}) async {
+    if (isLocalOnly) {
+      final rows = List<Map<String, dynamic>>.from(MockData.students);
+      if (query == null || query.trim().isEmpty) return rows;
+      final q = query.trim().toLowerCase();
+      return rows.where((row) {
+        return row['name'].toString().toLowerCase().contains(q) ||
+            row['class_name'].toString().toLowerCase().contains(q) ||
+            row['roll_no'].toString().toLowerCase().contains(q) ||
+            row['section'].toString().toLowerCase().contains(q) ||
+            row['department'].toString().toLowerCase().contains(q);
+      }).toList();
+    }
     if (query == null || query.trim().isEmpty) {
       final rows = await db.from('students').select().limit(100);
       return List<Map<String, dynamic>>.from(rows);
@@ -242,6 +321,16 @@ class FirebaseService {
 
   Future<List<Map<String, dynamic>>> fetchStudentsForClass(
       String className) async {
+    if (isLocalOnly) {
+      final rows = List<Map<String, dynamic>>.from(MockData.students);
+      if (className.isEmpty) return rows;
+      return rows
+          .where((row) => row['class_name']
+              .toString()
+              .toLowerCase()
+              .contains(className.toLowerCase()))
+          .toList();
+    }
     if (className.isEmpty) return searchStudents();
     final rows = await db
         .from('students')
@@ -253,17 +342,22 @@ class FirebaseService {
 
   Future<void> importStudents(List<Map<String, dynamic>> students) async {
     if (students.isEmpty) return;
+    if (isLocalOnly) return;
     await db.from('students').upsert(students);
   }
 
   Future<void> toggleCR(
       {required String studentId, required bool isCR}) async {
+    if (isLocalOnly) return;
     await db.from('users').update({'is_cr': isCR}).eq('id', studentId);
   }
 
   // ── Files ─────────────────────────────────────────────────────────────────
 
   Future<String> uploadFile(String filePath, Uint8List bytes) async {
+    if (isLocalOnly) {
+      return 'https://demo.local/files/${const Uuid().v4()}';
+    }
     final id = const Uuid().v4();
     final storagePath = 'notes/$id';
     await db.storage.from('campus-files').uploadBinary(storagePath, bytes,
@@ -277,6 +371,7 @@ class FirebaseService {
     required String uploadedBy,
     String fileType = 'link',
   }) async {
+    if (isLocalOnly) return;
     final id = const Uuid().v4();
     await db.from('files').insert({
       'id': id,
@@ -289,6 +384,7 @@ class FirebaseService {
   }
 
   Future<List<Map<String, dynamic>>> fetchFiles({int limit = 20}) async {
+    if (isLocalOnly) return [];
     final rows =
         await db.from('files').select().limit(limit).order('uploaded_at', ascending: false);
     return List<Map<String, dynamic>>.from(rows);
@@ -298,6 +394,7 @@ class FirebaseService {
 
   Future<void> markAnnouncementRead(
       {required String announcementId, required String studentId}) async {
+    if (isLocalOnly) return;
     await db.from('announcement_reads').upsert({
       'announcement_id': announcementId,
       'student_id': studentId,
@@ -308,6 +405,7 @@ class FirebaseService {
   // ── Seed ──────────────────────────────────────────────────────────────────
 
   Future<void> seedDemoData() async {
+    if (isLocalOnly) return;
     // ── 20+ Realistic CSE 4C Students ────────────────────────────────────────
     final students = [
       {'id': const Uuid().v4(), 'name': 'Aarav Sharma',      'class_name': 'CSE 4C', 'roll_no': 'CS4C01', 'section': 'C', 'department': 'Computer Science', 'email': 'aarav.sharma@college.edu'},

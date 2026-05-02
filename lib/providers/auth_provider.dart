@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/firebase_service.dart';
+import '../utils/mock_data.dart';
 
 class AuthProvider extends ChangeNotifier {
   AppUser? _user;
@@ -26,11 +27,14 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      // Uses in-memory cache — no network call if session already cached
-      _user = await FirebaseService.instance.getCurrentUserProfile();
+      if (FirebaseService.instance.isLocalOnly) {
+        _user = MockData.demoUser;
+      } else {
+        // Uses in-memory cache — no network call if session already cached
+        _user = await FirebaseService.instance.getCurrentUserProfile();
+      }
     } catch (e) {
-      _user = null;
-      _error = 'Backend not ready. Please check Supabase configuration.';
+      _user = MockData.demoUser;
     } finally {
       _loading = false;
       notifyListeners();

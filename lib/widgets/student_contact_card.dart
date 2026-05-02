@@ -44,7 +44,7 @@ class StudentContactCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.18),
+                    color: AppTheme.primary.withValues(alpha: 0.18),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
