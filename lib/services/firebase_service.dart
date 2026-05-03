@@ -43,6 +43,13 @@ class FirebaseService {
 
   // ── Auth ─────────────────────────────────────────────────────────────────
 
+  /// Returns true if the roll number exists in the real CSE 4C roster.
+  /// Used to detect and discard stale demo profile rows from Supabase.
+  bool _isRealRollNo(String rollNo) {
+    if (rollNo.isEmpty) return false;
+    return MockData.students.any((s) => s['roll_no'] == rollNo);
+  }
+
   Future<AppUser?> getCurrentUserProfile({bool forceRefresh = false}) async {
     if (!forceRefresh && _cachedUser != null) return _cachedUser;
     if (isLocalOnly) {
@@ -65,7 +72,14 @@ class FirebaseService {
           email: u.email ?? '',
         );
       } else {
-        _cachedUser = AppUser.fromMap(Map<String, dynamic>.from(row));
+        final profile = AppUser.fromMap(Map<String, dynamic>.from(row));
+        // Detect stale demo data: roll number doesn't exist in the real roster
+        if (profile.role == 'student' && !_isRealRollNo(profile.rollNo)) {
+          // Stale row — use the canonical demo user instead
+          _cachedUser = MockData.demoUser;
+        } else {
+          _cachedUser = profile;
+        }
       }
     } catch (_) {
       _cachedUser = AppUser(
