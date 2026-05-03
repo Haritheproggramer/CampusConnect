@@ -296,52 +296,34 @@ class FirebaseService {
 
   // ── Students ──────────────────────────────────────────────────────────────
 
+  /// Student search — ALWAYS uses the local CSE 4C roster as the source of
+  /// truth for the contact list. Supabase data (which may contain stale/demo
+  /// names) is intentionally bypassed here so the UI always shows real names.
   Future<List<Map<String, dynamic>>> searchStudents({String? query}) async {
-    if (isLocalOnly) {
-      final rows = List<Map<String, dynamic>>.from(MockData.students);
-      if (query == null || query.trim().isEmpty) return rows;
-      final q = query.trim().toLowerCase();
-      return rows.where((row) {
-        return row['name'].toString().toLowerCase().contains(q) ||
-            row['class_name'].toString().toLowerCase().contains(q) ||
-            row['roll_no'].toString().toLowerCase().contains(q) ||
-            row['section'].toString().toLowerCase().contains(q) ||
-        row['group'].toString().toLowerCase().contains(q) ||
-            row['department'].toString().toLowerCase().contains(q);
-      }).toList();
-    }
-    if (query == null || query.trim().isEmpty) {
-      final rows = await db.from('students').select().limit(100);
-      return _aliasStudentGroup(rows);
-    }
-    final q = query.trim();
-    final rows = await db
-        .from('students')
-        .select()
-        .or('name.ilike.%$q%,class_name.ilike.%$q%,roll_no.ilike.%$q%,section.ilike.%$q%,group_name.ilike.%$q%')
-        .limit(100);
-    return _aliasStudentGroup(rows);
+    final rows = List<Map<String, dynamic>>.from(MockData.students);
+    if (query == null || query.trim().isEmpty) return rows;
+    final q = query.trim().toLowerCase();
+    return rows.where((row) {
+      return row['name'].toString().toLowerCase().contains(q) ||
+          row['class_name'].toString().toLowerCase().contains(q) ||
+          row['roll_no'].toString().toLowerCase().contains(q) ||
+          row['section'].toString().toLowerCase().contains(q) ||
+          row['group'].toString().toLowerCase().contains(q) ||
+          row['department'].toString().toLowerCase().contains(q);
+    }).toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchStudentsForClass(
       String className) async {
-    if (isLocalOnly) {
-      final rows = List<Map<String, dynamic>>.from(MockData.students);
-      if (className.isEmpty) return rows;
-      return rows
-          .where((row) => row['class_name']
-              .toString()
-              .toLowerCase()
-              .contains(className.toLowerCase()))
-          .toList();
-    }
-    if (className.isEmpty) return searchStudents();
-    final rows = await db
-        .from('students')
-        .select()
-        .ilike('class_name', '%$className%')
-        .limit(200);
-    return _aliasStudentGroup(rows);
+    // Always return from local roster — prevents stale Supabase data leaking in
+    final rows = List<Map<String, dynamic>>.from(MockData.students);
+    if (className.isEmpty) return rows;
+    return rows
+        .where((row) => row['class_name']
+            .toString()
+            .toLowerCase()
+            .contains(className.toLowerCase()))
+        .toList();
   }
 
   Future<void> importStudents(List<Map<String, dynamic>> students) async {
@@ -593,13 +575,4 @@ class FirebaseService {
       },
     ]);
   }
-
-  List<Map<String, dynamic>> _aliasStudentGroup(dynamic rows) {
-    return List<Map<String, dynamic>>.from(rows).map((row) {
-      final map = Map<String, dynamic>.from(row);
-      map['group'] = map['group_name'] ?? map['group'] ?? '';
-      return map;
-    }).toList(growable: false);
-  }
 }
-

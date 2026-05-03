@@ -4,10 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
-import '../services/firebase_service.dart';
 import '../utils/app_theme.dart';
 import '../utils/mock_data.dart';
-import '../widgets/shimmer_loader.dart';
+import '../utils/section_rosters.dart';
 import 'chat_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -17,98 +16,88 @@ class MessagesScreen extends StatefulWidget {
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
+class _MessagesScreenState extends State<MessagesScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabCtrl;
   final _searchCtrl = TextEditingController();
-  List<Map<String, dynamic>> _students = [];
-  final List<Map<String, dynamic>> _teachers = List<Map<String, dynamic>>.from(MockData.teachers);
-  String _sectionFilter = 'All';
+
+  // Class selector — default to the only class with real data
+  String _selectedClass = 'CSE Core C';
+
+  // Group filter
   String _groupFilter = 'All';
-  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));
   }
 
   @override
   void dispose() {
+    _tabCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _load({String query = ''}) async {
-    if (!mounted) return;
-    setState(() => _loading = true);
-    try {
-      final rows = await FirebaseService.instance
-          .searchStudents(query: query.trim().isEmpty ? null : query);
-      if (!mounted) return;
-      setState(() {
-        _students = rows.isNotEmpty || query.trim().isNotEmpty
-            ? rows
-            : List<Map<String, dynamic>>.from(MockData.students);
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _students = _filteredStudents(query));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+  // ── Data ──────────────────────────────────────────────────────────────────
+
+  /// Always read from the local roster — never from Supabase stale data.
+  List<Map<String, dynamic>> get _rosterStudents {
+    final raw = SectionRosterData.studentsForClass(_selectedClass);
+    // Ensure 'id' key exists for chat navigation
+    return raw.map((s) => {...s, 'id': s['roll_no']}).toList(growable: false);
   }
 
-  List<Map<String, dynamic>> _filteredStudents(String query) {
-    final rows = List<Map<String, dynamic>>.from(MockData.students);
-    if (query.trim().isEmpty) return rows;
-    final q = query.toLowerCase();
-    return rows.where((student) {
-      return student['name'].toString().toLowerCase().contains(q) ||
-          student['class_name'].toString().toLowerCase().contains(q) ||
-          student['roll_no'].toString().toLowerCase().contains(q) ||
-          student['section'].toString().toLowerCase().contains(q) ||
-          student['department'].toString().toLowerCase().contains(q);
-    }).toList();
-  }
+  List<Map<String, dynamic>> get _teachers =>
+      List<Map<String, dynamic>>.from(MockData.teachers);
 
-  List<Map<String, dynamic>> _filteredTeachers(String query) {
-    final rows = List<Map<String, dynamic>>.from(_teachers);
-    if (query.trim().isEmpty) return rows;
-    final q = query.toLowerCase();
-    return rows.where((teacher) {
-      return teacher['name'].toString().toLowerCase().contains(q) ||
-          teacher['subject'].toString().toLowerCase().contains(q) ||
-          teacher['role'].toString().toLowerCase().contains(q);
-    }).toList();
+  List<String> get _groupOptions {
+    final groups = _rosterStudents
+        .map((s) => s['group']?.toString() ?? '')
+        .where((g) => g.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return ['All', ...groups];
   }
 
   List<Map<String, dynamic>> _visibleStudents(String query) {
-    final rows = _students.where(_matchesRosterFilters).toList(growable: false);
-    if (query.trim().isEmpty) return rows;
-    final q = query.toLowerCase();
-    return rows.where((student) {
-      return student['name'].toString().toLowerCase().contains(q) ||
-          student['class_name'].toString().toLowerCase().contains(q) ||
-          student['roll_no'].toString().toLowerCase().contains(q) ||
-          student['section'].toString().toLowerCase().contains(q) ||
-          student['group'].toString().toLowerCase().contains(q) ||
-          student['department'].toString().toLowerCase().contains(q);
-    }).toList(growable: false);
+    var rows = _rosterStudents;
+    // Group filter
+    if (_groupFilter != 'All') {
+      rows = rows.where((s) => s['group']?.toString() == _groupFilter).toList();
+    }
+    // Search filter
+    if (query.trim().isNotEmpty) {
+      final q = query.trim().toLowerCase();
+      rows = rows.where((s) {
+        return s['name'].toString().toLowerCase().contains(q) ||
+            s['roll_no'].toString().toLowerCase().contains(q) ||
+            (s['group']?.toString().toLowerCase().contains(q) ?? false);
+      }).toList();
+    }
+    return rows;
   }
 
-  bool _matchesRosterFilters(Map<String, dynamic> student) {
-    final section = student['section'].toString();
-    final group = student['group'].toString();
-    final sectionOk = _sectionFilter == 'All' || section == _sectionFilter;
-    final groupOk = _groupFilter == 'All' || group == _groupFilter;
-    return sectionOk && groupOk;
+  List<Map<String, dynamic>> _visibleTeachers(String query) {
+    if (query.trim().isEmpty) return _teachers;
+    final q = query.trim().toLowerCase();
+    return _teachers.where((t) {
+      return t['name'].toString().toLowerCase().contains(q) ||
+          t['subject'].toString().toLowerCase().contains(q) ||
+          (t['role']?.toString().toLowerCase().contains(q) ?? false);
+    }).toList();
   }
 
   void _openChat(BuildContext context, AppUser currentUser,
-      Map<String, dynamic> contact, {required bool isTeacher}) {
+      Map<String, dynamic> contact,
+      {required bool isTeacher}) {
     final subjectLine = isTeacher
         ? [contact['subject'], contact['role']]
-            .where((value) => value != null && value.toString().isNotEmpty)
-            .map((value) => value.toString())
+            .where((v) => v != null && v.toString().isNotEmpty)
+            .map((v) => v.toString())
             .join(' · ')
         : (contact['class_name'] ?? '').toString();
 
@@ -122,8 +111,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
             currentUserRole: currentUser.role,
             otherUserId: contact['id'] as String? ?? '',
             otherUserName: contact['name'] as String? ?? '',
-            otherClass: isTeacher ? subjectLine : (contact['class_name'] as String? ?? ''),
-            otherRollNo: isTeacher ? '' : (contact['roll_no'] as String? ?? ''),
+            otherClass: isTeacher
+                ? subjectLine
+                : (contact['class_name'] as String? ?? ''),
+            otherRollNo:
+                isTeacher ? '' : (contact['roll_no'] as String? ?? ''),
           ),
         ),
         transitionDuration: const Duration(milliseconds: 250),
@@ -131,257 +123,283 @@ class _MessagesScreenState extends State<MessagesScreen> {
     );
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final user = auth.user;
-    final isDesktop = MediaQuery.of(context).size.width >= 960;
     final query = _searchCtrl.text.trim();
+    final onStudentTab = _tabCtrl.index == 0;
+
     final visibleStudents = _visibleStudents(query);
-    final visibleTeachers = _filteredTeachers(query);
+    final visibleTeachers = _visibleTeachers(query);
+
+    final hasRoster = SectionRosterData.hasRoster(_selectedClass);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(isDesktop ? 16 : 12, 12, isDesktop ? 16 : 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SearchField(
-            controller: _searchCtrl,
-            onChanged: (value) {
-              Future.delayed(const Duration(milliseconds: 250), () {
-                if (_searchCtrl.text == value) _load(query: value);
-              });
-            },
+          // ── Class / Section selector ───────────────────────────────────────
+          _ClassSelector(
+            selected: _selectedClass,
+            onChanged: (v) => setState(() {
+              _selectedClass = v;
+              _groupFilter = 'All';
+            }),
           ),
           const SizedBox(height: 10),
-          _RosterFilters(
-            sectionFilter: _sectionFilter,
-            groupFilter: _groupFilter,
-            onSectionChanged: (value) => setState(() => _sectionFilter = value),
-            onGroupChanged: (value) => setState(() => _groupFilter = value),
-            onClear: (_sectionFilter != 'All' || _groupFilter != 'All')
-                ? () => setState(() {
-                      _sectionFilter = 'All';
-                      _groupFilter = 'All';
-                    })
-                : null,
+
+          // ── Search bar ────────────────────────────────────────────────────
+          _SearchField(
+            controller: _searchCtrl,
+            onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 12),
-          if (isDesktop)
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _ContactsPane(
-                      title: 'Students',
-                      subtitle: 'CSE 4C roster',
-                      count: _loading ? null : visibleStudents.length,
-                      loading: _loading,
-                      emptyText: 'No students match the search.',
-                      children: _loading
-                          ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                          : visibleStudents.isEmpty
-                              ? const []
-                              : List.generate(visibleStudents.length, (index) {
-                                  final student = visibleStudents[index];
-                                  return _StudentTile(
-                                    student: student,
-                                    hasUnread: index % 3 == 0,
-                                    onTap: user == null ? null : () => _openChat(context, user, student, isTeacher: false),
-                                  );
-                                }),
-                    ),
+          const SizedBox(height: 10),
+
+          // ── Tab bar: Students | Teachers ───────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceCard,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: TabBar(
+              controller: _tabCtrl,
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.people_outline, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('Students'),
+                      if (hasRoster) ...[
+                        const SizedBox(width: 6),
+                        _CountBadge(count: visibleStudents.length),
+                      ],
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _ContactsPane(
-                      title: 'CSE 4C Teachers',
-                      subtitle: 'Faculty and mentors',
-                        count: _loading ? null : visibleTeachers.length,
-                      loading: _loading,
-                      emptyText: 'No teachers match the search.',
-                      children: _loading
-                          ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                          : visibleTeachers.isEmpty
-                              ? const []
-                            : visibleTeachers
-                                  .map((teacher) => _TeacherTile(
-                                        teacher: teacher,
-                                        onTap: user == null ? null : () => _openChat(context, user, teacher, isTeacher: true),
-                                      ))
-                                  .toList(),
-                    ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.school_outlined, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('Teachers'),
+                      const SizedBox(width: 6),
+                      _CountBadge(count: visibleTeachers.length),
+                    ],
                   ),
-                ],
-              ),
-            )
-          else
-            Expanded(
-              child: DefaultTabController(
-                length: 2,
-                child: Column(
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // ── Group filter — only on student tab and when roster exists ─────
+          if (onStudentTab && hasRoster)
+            _GroupFilter(
+              options: _groupOptions,
+              selected: _groupFilter,
+              onChanged: (v) => setState(() => _groupFilter = v),
+            ),
+          if (onStudentTab && hasRoster) const SizedBox(height: 10),
+
+          // ── Content ───────────────────────────────────────────────────────
+          Expanded(
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                // ── Students tab ─────────────────────────────────────────────
+                !hasRoster
+                    ? _RosterNotAdded(
+                        className: SectionRosterData
+                                .classDisplayNames[_selectedClass] ??
+                            _selectedClass,
+                      )
+                    : visibleStudents.isEmpty
+                        ? _EmptySearch(
+                            message: query.isEmpty
+                                ? 'No students match the filters.'
+                                : 'No students match "$query".',
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            itemCount: visibleStudents.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 6),
+                            itemBuilder: (ctx, i) {
+                              final s = visibleStudents[i];
+                              return _StudentTile(
+                                student: s,
+                                onTap: user == null
+                                    ? null
+                                    : () => _openChat(ctx, user, s,
+                                        isTeacher: false),
+                              );
+                            },
+                          ),
+
+                // ── Teachers tab ─────────────────────────────────────────────
+                visibleTeachers.isEmpty
+                    ? _EmptySearch(
+                        message: 'No teachers match "$query".',
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        itemCount: visibleTeachers.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 6),
+                        itemBuilder: (ctx, i) {
+                          final t = visibleTeachers[i];
+                          return _TeacherTile(
+                            teacher: t,
+                            onTap: user == null
+                                ? null
+                                : () => _openChat(ctx, user, t,
+                                    isTeacher: true),
+                          );
+                        },
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Class selector ──────────────────────────────────────────────────────────
+
+class _ClassSelector extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _ClassSelector({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: SectionRosterData.allClassLabels.map((label) {
+          final isSelected = selected == label;
+          final hasData = SectionRosterData.hasRoster(label);
+          final displayName =
+              SectionRosterData.classDisplayNames[label] ?? label;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => onChanged(label),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppTheme.primary.withValues(alpha: 0.18)
+                      : AppTheme.surfaceCard,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primary
+                        : AppTheme.surfaceCardLight.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceCard,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: TabBar(
-                        tabs: const [
-                          Tab(text: 'Students'),
-                          Tab(text: 'Teachers'),
-                        ],
+                    Text(
+                      displayName,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? AppTheme.primary
+                            : AppTheme.onSurfaceMuted,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          _ContactsPane(
-                            title: 'Students',
-                            subtitle: 'CSE 4C roster',
-                            count: _loading ? null : visibleStudents.length,
-                            loading: _loading,
-                            emptyText: 'No students match the search.',
-                            children: _loading
-                                ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                              : visibleStudents.isEmpty
-                                    ? const []
-                                : List.generate(visibleStudents.length, (index) {
-                                  final student = visibleStudents[index];
-                                        return _StudentTile(
-                                          student: student,
-                                          hasUnread: index % 3 == 0,
-                                          onTap: user == null ? null : () => _openChat(context, user, student, isTeacher: false),
-                                        );
-                                      }),
-                          ),
-                          _ContactsPane(
-                            title: 'Teachers',
-                            subtitle: 'CSE 4C faculty',
-                            count: _loading ? null : visibleTeachers.length,
-                            loading: _loading,
-                            emptyText: 'No teachers match the search.',
-                            children: _loading
-                                ? const [ShimmerContactCard(), ShimmerContactCard(), ShimmerContactCard()]
-                              : visibleTeachers.isEmpty
-                                    ? const []
-                                : visibleTeachers
-                                        .map((teacher) => _TeacherTile(
-                                              teacher: teacher,
-                                              onTap: user == null ? null : () => _openChat(context, user, teacher, isTeacher: true),
-                                            ))
-                                        .toList(),
-                          ),
-                        ],
+                    if (!hasData) ...[
+                      const SizedBox(width: 5),
+                      Icon(
+                        Icons.lock_outline,
+                        size: 11,
+                        color: isSelected
+                            ? AppTheme.primary.withValues(alpha: 0.6)
+                            : AppTheme.onSurfaceMuted.withValues(alpha: 0.5),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
             ),
-        ],
+          );
+        }).toList(),
       ),
     );
   }
 }
 
-class _RosterFilters extends StatelessWidget {
-  final String sectionFilter;
-  final String groupFilter;
-  final ValueChanged<String> onSectionChanged;
-  final ValueChanged<String> onGroupChanged;
-  final VoidCallback? onClear;
+// ── Group filter chips ───────────────────────────────────────────────────────
 
-  const _RosterFilters({
-    required this.sectionFilter,
-    required this.groupFilter,
-    required this.onSectionChanged,
-    required this.onGroupChanged,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sections = ['All', ...MockData.availableSections];
-    final groups = ['All', ...MockData.availableGroups];
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          _FilterGroup(
-            label: 'Section',
-            values: sections,
-            selected: sectionFilter,
-            onChanged: onSectionChanged,
-          ),
-          _FilterGroup(
-            label: 'Group',
-            values: groups,
-            selected: groupFilter,
-            onChanged: onGroupChanged,
-          ),
-          if (onClear != null)
-            TextButton.icon(
-              onPressed: onClear,
-              icon: const Icon(Icons.clear_all_rounded, size: 16),
-              label: const Text('Clear filters'),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterGroup extends StatelessWidget {
-  final String label;
-  final List<String> values;
+class _GroupFilter extends StatelessWidget {
+  final List<String> options;
   final String selected;
   final ValueChanged<String> onChanged;
 
-  const _FilterGroup({
-    required this.label,
-    required this.values,
+  const _GroupFilter({
+    required this.options,
     required this.selected,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          '$label:',
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.onSurfaceMuted,
-          ),
-        ),
-        ...values.map(
-          (value) => ChoiceChip(
-            label: Text(value),
-            selected: selected == value,
-            onSelected: (_) => onChanged(value),
-            labelStyle: GoogleFonts.inter(
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            'Group:',
+            style: GoogleFonts.inter(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: selected == value ? Colors.white : AppTheme.onSurfaceMuted,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.onSurfaceMuted,
             ),
-            selectedColor: AppTheme.primary,
-            backgroundColor: AppTheme.surfaceCard,
-            side: BorderSide(color: AppTheme.surfaceCardLight.withValues(alpha: 0.2)),
           ),
-        ),
-      ],
+          ...options.map(
+            (g) => ChoiceChip(
+              label: Text(g),
+              selected: selected == g,
+              onSelected: (_) => onChanged(g),
+              labelStyle: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: selected == g ? Colors.white : AppTheme.onSurfaceMuted,
+              ),
+              selectedColor: AppTheme.primary,
+              backgroundColor: AppTheme.surfaceCard,
+              side: BorderSide(
+                  color: AppTheme.surfaceCardLight.withValues(alpha: 0.25)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+// ── Search bar ───────────────────────────────────────────────────────────────
 
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
@@ -396,11 +414,13 @@ class _SearchField extends StatelessWidget {
       onChanged: onChanged,
       style: const TextStyle(color: AppTheme.onSurface),
       decoration: InputDecoration(
-        hintText: 'Search students or teachers',
-        prefixIcon: const Icon(Icons.search, color: AppTheme.onSurfaceMuted, size: 20),
+        hintText: 'Search name, roll no, group…',
+        prefixIcon:
+            const Icon(Icons.search, color: AppTheme.onSurfaceMuted, size: 20),
         suffixIcon: controller.text.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear, color: AppTheme.onSurfaceMuted, size: 18),
+                icon: const Icon(Icons.clear,
+                    color: AppTheme.onSurfaceMuted, size: 18),
                 onPressed: () {
                   controller.clear();
                   onChanged('');
@@ -412,190 +432,218 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-class _ContactsPane extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final int? count;
-  final bool loading;
-  final String emptyText;
-  final List<Widget> children;
+// ── Empty / placeholder states ───────────────────────────────────────────────
 
-  const _ContactsPane({
-    required this.title,
-    required this.subtitle,
-    required this.count,
-    required this.loading,
-    required this.emptyText,
-    required this.children,
-  });
+class _CountBadge extends StatelessWidget {
+  final int count;
+  const _CountBadge({required this.count});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(18),
+        color: AppTheme.primary.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppTheme.onSurfaceMuted,
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              if (count != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: children.isEmpty && !loading
-                ? Center(
-                    child: Text(
-                      emptyText,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppTheme.onSurfaceMuted,
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: children.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) => children[index],
-                  ),
-          ),
-        ],
+      child: Text(
+        '$count',
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.primary,
+        ),
       ),
     );
   }
 }
 
-class _StudentTile extends StatelessWidget {
-  final Map<String, dynamic> student;
-  final bool hasUnread;
-  final VoidCallback? onTap;
-
-  const _StudentTile({required this.student, required this.hasUnread, required this.onTap});
+class _RosterNotAdded extends StatelessWidget {
+  final String className;
+  const _RosterNotAdded({required this.className});
 
   @override
   Widget build(BuildContext context) {
-    final name = student['name'].toString();
-    final className = student['class_name'].toString();
-    final rollNo = student['roll_no'].toString();
-    final initials = name.trim().split(' ').map((part) => part.isNotEmpty ? part[0] : '').take(2).join().toUpperCase();
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceCardLight.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.surfaceCardLight.withValues(alpha: 0.18)),
-        ),
-        child: Row(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppTheme.primary.withValues(alpha: 0.18),
-                  child: Text(
-                    initials.isEmpty ? '?' : initials,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ),
-                if (hasUnread)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: AppTheme.unreadDot,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.surfaceCard, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '$className · Roll No: $rollNo',
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: AppTheme.onSurfaceMuted,
-                    ),
-                  ),
-                ],
+            Icon(Icons.group_add_outlined,
+                size: 48, color: AppTheme.onSurfaceMuted.withValues(alpha: 0.5)),
+            const SizedBox(height: 16),
+            Text(
+              'Roster not added yet',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.onSurface,
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: AppTheme.onSurfaceMuted, size: 18),
+            const SizedBox(height: 8),
+            Text(
+              'Student data for $className has not been added.\nContact your CR or admin to upload the roster.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppTheme.onSurfaceMuted,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+class _EmptySearch extends StatelessWidget {
+  final String message;
+  const _EmptySearch({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.inter(fontSize: 13, color: AppTheme.onSurfaceMuted),
+      ),
+    );
+  }
+}
+
+// ── Student tile ─────────────────────────────────────────────────────────────
+
+class _StudentTile extends StatelessWidget {
+  final Map<String, dynamic> student;
+  final VoidCallback? onTap;
+
+  const _StudentTile({required this.student, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = student['name'].toString();
+    final rollNo = student['roll_no'].toString();
+    final group = student['group']?.toString() ?? '';
+    final isCR = student['is_cr'] == true;
+    final initials = name
+        .trim()
+        .split(' ')
+        .map((p) => p.isNotEmpty ? p[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: isCR
+                  ? AppTheme.catClass.withValues(alpha: 0.18)
+                  : AppTheme.primary.withValues(alpha: 0.15),
+              child: Text(
+                initials.isEmpty ? '?' : initials,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: isCR ? AppTheme.catClass : AppTheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Name + roll
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          name,
+                          style: GoogleFonts.inter(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isCR) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppTheme.catClass.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            'CR',
+                            style: GoogleFonts.inter(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.catClass,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    rollNo,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppTheme.onSurfaceMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Group badge
+            if (group.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: group == 'G1'
+                      ? AppTheme.catAll.withValues(alpha: 0.14)
+                      : AppTheme.catDept.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  group,
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: group == 'G1' ? AppTheme.catAll : AppTheme.catDept,
+                  ),
+                ),
+              ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right,
+                color: AppTheme.onSurfaceMuted, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Teacher tile ─────────────────────────────────────────────────────────────
 
 class _TeacherTile extends StatelessWidget {
   final Map<String, dynamic> teacher;
@@ -608,27 +656,32 @@ class _TeacherTile extends StatelessWidget {
     final name = teacher['name'].toString();
     final subject = teacher['subject'].toString();
     final role = (teacher['role'] ?? '').toString();
-    final initials = name.trim().split(' ').map((part) => part.isNotEmpty ? part[0] : '').take(2).join().toUpperCase();
+    final initials = name
+        .trim()
+        .split(' ')
+        .map((p) => p.isNotEmpty ? p[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceCardLight.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.surfaceCardLight.withValues(alpha: 0.18)),
+          color: AppTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 22,
+              radius: 20,
               backgroundColor: AppTheme.catDept.withValues(alpha: 0.16),
               child: Text(
                 initials.isEmpty ? '?' : initials,
                 style: GoogleFonts.inter(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.catDept,
                 ),
@@ -642,45 +695,40 @@ class _TeacherTile extends StatelessWidget {
                   Text(
                     name,
                     style: GoogleFonts.inter(
-                      fontSize: 14,
+                      fontSize: 13.5,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
                     subject,
                     style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: AppTheme.onSurfaceMuted,
-                    ),
+                        fontSize: 11, color: AppTheme.onSurfaceMuted),
                   ),
-                  if (role.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          role,
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
+            if (role.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  role,
+                  style: GoogleFonts.inter(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: AppTheme.onSurfaceMuted, size: 18),
+            Icon(Icons.chevron_right,
+                color: AppTheme.onSurfaceMuted, size: 16),
           ],
         ),
       ),

@@ -420,3 +420,18 @@ const kCseSchedule = {
     TimetableSlot(startTime: '3:30 PM', endTime: '5:20 PM', subject: 'AI & ML Lab', teacher: 'Dr. Priya R.', room: 'Lab-2', color: Color(0xFF26C6DA)),
   ],
 };
+
+/// Multi-class timetable registry.
+///
+/// Structure: classLabel → day → List<TimetableSlot>
+/// Add future class timetables here. null = "Timetable not added yet".
+/// Do NOT add fake data for classes without real timetables.
+/// Class labels must match SectionRosterData.allClassLabels.
+const Map<String, Map<String, List<TimetableSlot>>?> kAllTimetables = {
+  'CSE Core C': kCseSchedule, // ← active real data
+  'CSE Core A': null,         // coming soon
+  'CSE Core B': null,         // coming soon
+  'CSE Core D': null,         // coming soon
+  'AIML A':    null,          // coming soon
+  'AIML B':    null,          // coming soon
+};
